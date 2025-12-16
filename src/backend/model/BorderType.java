@@ -2,6 +2,6 @@ package backend.model;
 
 public enum BorderType {
     NORMAL,
-    DASHED,
-    DOTTED
+    DOTTED_SIMPLE,
+    DOTTED_COMPLEX
 }
