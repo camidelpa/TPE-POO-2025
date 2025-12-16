@@ -17,14 +17,14 @@ import javafx.scene.paint.Stop;
 
 public class PaintPane extends BorderPane {
 
-	// BackEnd
+	// backend
 	private final CanvasState canvasState;
 
-	// Canvas y relacionados
+	// canvas and GraphicsContext
 	private final Canvas canvas = new Canvas(800, 600);
 	private final GraphicsContext gc = canvas.getGraphicsContext2D();
 
-	// Botones Barra Izquierda - Herramientas
+	// Tools
 	private final ToggleButton selectionButton = new ToggleButton("Seleccionar");
 	private final ToggleButton rectangleButton = new ToggleButton("Rectángulo");
 	private final ToggleButton circleButton = new ToggleButton("Círculo");
@@ -32,22 +32,21 @@ public class PaintPane extends BorderPane {
 	private final ToggleButton ellipseButton = new ToggleButton("Elipse");
 	private final ToggleButton deleteButton = new ToggleButton("Borrar");
 
-	// --- SECCIÓN ESTILOS ---
-	// 1. Sombra
+	// 1. Shadows
 	private final ChoiceBox<ShadowType> shadowBox = new ChoiceBox<>();
 
-	// 2. Relleno
+	// 2. Fills
 	private final ColorPicker fillColorPicker1 = new ColorPicker(Color.YELLOW);
 	private final ColorPicker fillColorPicker2 = new ColorPicker(Color.RED);
 
-	// 3. Borde
+	// 3. Borders
 	private final ChoiceBox<BorderType> borderBox = new ChoiceBox<>();
 	private final Slider borderSlider = new Slider(1, 20, 1);
 
-	// Dibujar una figura
+	// Draw a figure
 	private Point startPoint;
 
-	// Seleccionar una figura
+	// Select a figure
 	private Figure selectedFigure;
 
 	// StatusBar
@@ -57,7 +56,6 @@ public class PaintPane extends BorderPane {
 		this.canvasState = canvasState;
 		this.statusPane = statusPane;
 
-		// --- CONFIGURACIÓN DE HERRAMIENTAS ---
 		ToggleButton[] toolsArr = {selectionButton, rectangleButton, circleButton, squareButton, ellipseButton, deleteButton};
 		ToggleGroup tools = new ToggleGroup();
 		for (ToggleButton tool : toolsArr) {
@@ -66,23 +64,21 @@ public class PaintPane extends BorderPane {
 			tool.setCursor(Cursor.HAND);
 		}
 
-		// --- CONFIGURACIÓN DE ESTILOS ---
-		// Sombra
+		// Shadows
 		shadowBox.getItems().addAll(ShadowType.values());
 		shadowBox.setValue(ShadowType.NONE);
 		shadowBox.setTooltip(new Tooltip("Tipo de Sombra"));
 
-		// Relleno
+		// Fills
 		fillColorPicker1.setMaxWidth(90);
 		fillColorPicker2.setMaxWidth(90);
 
-		// Borde
+		// Borders
 		borderBox.getItems().addAll(BorderType.values());
 		borderBox.setValue(BorderType.NORMAL);
 		borderSlider.setShowTickMarks(true);
 		borderSlider.setShowTickLabels(true);
 
-		// --- LISTENERS ---
 		shadowBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
 			if (selectedFigure != null) {
 				selectedFigure.setShadowType(newVal);
@@ -119,7 +115,7 @@ public class PaintPane extends BorderPane {
 		});
 
 
-		// --- LAYOUT BARRA LATERAL ---
+		// Layout Sidebar
 		VBox buttonsBox = new VBox(10);
 		buttonsBox.setPadding(new Insets(5));
 		buttonsBox.setStyle("-fx-background-color: #999");
@@ -139,8 +135,6 @@ public class PaintPane extends BorderPane {
 		buttonsBox.getChildren().add(borderBox);
 
 
-		// --- EVENTOS DEL CANVAS ---
-
 		canvas.setOnMousePressed(event -> {
 			startPoint = new Point(event.getX(), event.getY());
 		});
@@ -154,8 +148,8 @@ public class PaintPane extends BorderPane {
 				return ;
 			}
 			Figure newFigure = null;
-			// NOTA: Aquí SÍ mantenemos la creación específica porque necesitamos
-			// instanciar la clase correcta (Square/Circle) aunque hereden.
+
+
 			if(rectangleButton.isSelected()) {
 				newFigure = new Rectangle(startPoint, endPoint);
 			}
@@ -252,13 +246,13 @@ public class PaintPane extends BorderPane {
 		setRight(canvas);
 	}
 
-	// --- LÓGICA DE DIBUJO ---
-	void redrawCanvas() {
+	// Draw logic
+	private void redrawCanvas() {
 		gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
 		for(Figure figure : canvasState.figures()) {
 
-			// 1. DIBUJAR SOMBRA
+			// 1. Draw
 			if (figure.getShadowType() != ShadowType.NONE) {
 				double offset = 10.0;
 				double shadowX = 0;
@@ -290,10 +284,9 @@ public class PaintPane extends BorderPane {
 				drawFigureShape(figure, shadowX, shadowY);
 			}
 
-			// 2. CONFIGURAR GRADIENTE
+			// 2. Gradient
 			Stop[] stops = new Stop[] { new Stop(0, figure.getFillColor1()), new Stop(1, figure.getFillColor2()) };
 
-			// OPTIMIZACIÓN: Al ser Circle hijo de Ellipse, solo preguntamos por Ellipse
 			if (figure instanceof Ellipse) {
 				RadialGradient radialGradient = new RadialGradient(0, 0, 0.5, 0.5, 0.5, true, CycleMethod.NO_CYCLE, stops);
 				gc.setFill(radialGradient);
@@ -303,7 +296,7 @@ public class PaintPane extends BorderPane {
 				gc.setFill(linearGradient);
 			}
 
-			// 3. CONFIGURAR BORDE
+			// 3. Border
 			if (figure == selectedFigure) {
 				gc.setStroke(Color.RED);
 				gc.setLineDashes((double[]) null);
@@ -326,15 +319,13 @@ public class PaintPane extends BorderPane {
 				}
 			}
 
-			// 4. DIBUJAR FIGURA REAL
+			// 4. Draw Figure
 			drawFigureShape(figure, 0, 0);
 		}
 	}
 
-	// --- LÓGICA UNIFICADA GRACIAS A LA HERENCIA ---
 	private void drawFigureShape(Figure figure, double offsetX, double offsetY) {
 
-		// BLOQUE 1: Rectángulos y Cuadrados (Ambos son Rectangle)
 		if(figure instanceof Rectangle) {
 			Rectangle rectangle = (Rectangle) figure;
 			double width = Math.abs(rectangle.getTopLeft().getX() - rectangle.getBottomRight().getX());
@@ -343,7 +334,6 @@ public class PaintPane extends BorderPane {
 			gc.fillRect(rectangle.getTopLeft().getX() + offsetX, rectangle.getTopLeft().getY() + offsetY, width, height);
 			if (offsetX == 0) gc.strokeRect(rectangle.getTopLeft().getX(), rectangle.getTopLeft().getY(), width, height);
 
-			// BLOQUE 2: Elipses y Círculos (Ambos son Ellipse)
 		} else if(figure instanceof Ellipse) {
 			Ellipse ellipse = (Ellipse) figure;
 			double width = ellipse.getsMayorAxis();
