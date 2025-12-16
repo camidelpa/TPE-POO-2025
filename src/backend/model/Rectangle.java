@@ -3,6 +3,7 @@ package backend.model;
 public class Rectangle extends Figure {
 
     private Point topLeft, bottomRight;
+    protected String figureName = "Rectangulo";
 
     public Rectangle(Point topLeft, Point bottomRight) {
         this.topLeft = topLeft;
@@ -11,7 +12,7 @@ public class Rectangle extends Figure {
 
     @Override
     public String getFigureName() {
-        return "Rectángulo";
+        return figureName;
     }
 
     public Point getTopLeft() {
@@ -24,10 +25,12 @@ public class Rectangle extends Figure {
 
     @Override
     public String toString() {
-        return String.format("Rectángulo [ %s , %s ]", topLeft, bottomRight);
+        return String.format("%s [ %s , %s ]", figureName, topLeft, bottomRight);
     }
 
-    // --- IMPLEMENTACIÓN OBLIGATORIA DE FIGURE ---
+
+    // --- IMPLEMENTACIÓN DE FIGURE ---
+
 
     @Override
     public boolean contains(Point point) {
