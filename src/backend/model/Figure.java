@@ -44,6 +44,14 @@ public abstract class Figure {
         return String.join(" ", tags);
     }
 
+    protected void copyStyleTo(Figure target) {
+        target.setFillColor1(this.fillColor1);
+        target.setFillColor2(this.fillColor2);
+        target.setShadowType(this.shadowType);
+        target.setBorderType(this.borderType);
+        target.setBorderWidth(this.borderWidth);
+    }
+
     // --- GETTERS Y SETTERS ---
     public Color getFillColor1() { return fillColor1; }
     public void setFillColor1(Color fillColor1) { this.fillColor1 = fillColor1; }
@@ -66,4 +74,8 @@ public abstract class Figure {
     public abstract Point getCenter(); // Necesario para "Mover al Centro" [cite: 248]
     public abstract String getFigureName();
     public abstract Figure deepCopy(); // Necesario para "Duplicar" [cite: 231]
+
+    public abstract Figure duplicate(double offsetX, double offsetY);
+    //public abstract List<Figure> divide();
+    //public abstract void moveToCenter(double canvasWidth, double canvasHeight);
 }

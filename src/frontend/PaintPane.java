@@ -32,6 +32,10 @@ public class PaintPane extends BorderPane {
 	private final ToggleButton ellipseButton = new ToggleButton("Elipse");
 	private final ToggleButton deleteButton = new ToggleButton("Borrar");
 
+    private final Button duplicateButton = new Button("Duplicar");
+    private final Button divideButton = new Button("Dividir");
+    private final Button centerButton = new Button("Al Centro");
+
 	// 1. Shadows
 	private final ChoiceBox<ShadowType> shadowBox = new ChoiceBox<>();
 
@@ -114,8 +118,26 @@ public class PaintPane extends BorderPane {
 			}
 		});
 
+        duplicateButton.setMinWidth(90);
+        duplicateButton.setCursor(Cursor.HAND);
 
-		// Layout Sidebar
+
+        duplicateButton.setOnAction(event -> {
+            if (selectedFigure != null) {
+                double offsetX = 20.0;
+                double offsetY = 20.0;
+
+                Figure duplicated = selectedFigure.duplicate(offsetX, offsetY);
+                canvasState.addFigure(duplicated);
+                redrawCanvas();
+                statusPane.updateStatus("Figura duplicada");
+            }
+        });
+
+
+
+
+        // Layout Sidebar
 		VBox buttonsBox = new VBox(10);
 		buttonsBox.setPadding(new Insets(5));
 		buttonsBox.setStyle("-fx-background-color: #999");
@@ -134,8 +156,14 @@ public class PaintPane extends BorderPane {
 		buttonsBox.getChildren().add(borderSlider);
 		buttonsBox.getChildren().add(borderBox);
 
+        buttonsBox.getChildren().add(new Label("Acciones"));
+        buttonsBox.getChildren().add(duplicateButton);
+        buttonsBox.getChildren().add(divideButton);
+        buttonsBox.getChildren().add(centerButton);
 
-		canvas.setOnMousePressed(event -> {
+
+
+        canvas.setOnMousePressed(event -> {
 			startPoint = new Point(event.getX(), event.getY());
 		});
 

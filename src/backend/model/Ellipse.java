@@ -60,4 +60,16 @@ public class Ellipse extends Figure {
     public Figure deepCopy() {
         return new Ellipse(new Point(centerPoint.getX(), centerPoint.getY()), sMayorAxis, sMinorAxis);
     }
+
+    @Override
+    public Figure duplicate(double offsetX, double offsetY) {
+        Point newCenter = new Point(
+                centerPoint.getX() + offsetX,
+                centerPoint.getY() + offsetY
+        );
+
+        Ellipse duplicated = new Ellipse(newCenter, sMayorAxis, sMinorAxis);
+        copyStyleTo(duplicated);
+        return duplicated;
+    }
 }

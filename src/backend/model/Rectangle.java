@@ -59,4 +59,20 @@ public class Rectangle extends Figure {
                 new Point(bottomRight.getX(), bottomRight.getY())
         );
     }
+
+    @Override
+    public Figure duplicate(double offsetX, double offsetY) {
+        Point newTopLeft = new Point(
+                topLeft.getX() + offsetX,
+                topLeft.getY() + offsetY
+        );
+        Point newBottomRight = new Point(
+                bottomRight.getX() + offsetX,
+                bottomRight.getY() + offsetY
+        );
+
+        Rectangle duplicated = new Rectangle(newTopLeft, newBottomRight);
+        copyStyleTo(duplicated);
+        return duplicated;
+    }
 }
