@@ -138,6 +138,20 @@ public class PaintPane extends BorderPane {
             }
         });
 
+        divideButton.setOnAction(event -> {
+            if (selectedFigure != null) {
+                java.util.List<Figure> dividedFigures = selectedFigure.divide();
+
+                canvasState.deleteFigure(selectedFigure);
+
+                for (Figure fig : dividedFigures) {
+                    canvasState.addFigure(fig);
+                }
+                selectedFigure = null;
+                redrawCanvas();
+                statusPane.updateStatus("Figura dividida");
+            }
+        });
 
         centerButton.setOnAction(event -> {
             if (selectedFigure != null) {
