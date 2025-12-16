@@ -2,8 +2,10 @@ package backend.model;
 
 public class Ellipse extends Figure {
 
-    private Point centerPoint;
-    private double sMayorAxis, sMinorAxis; // Semiejes (radios)
+    protected String figureName = "Elipse";
+
+    protected Point centerPoint;
+    protected double sMayorAxis, sMinorAxis; // Semiejes (radios)
 
     public Ellipse(Point centerPoint, double sMayorAxis, double sMinorAxis) {
         this.centerPoint = centerPoint;
@@ -13,7 +15,7 @@ public class Ellipse extends Figure {
 
     @Override
     public String getFigureName() {
-        return "Elipse";
+        return figureName;
     }
 
     public Point getCenterPoint() {
@@ -30,7 +32,7 @@ public class Ellipse extends Figure {
 
     @Override
     public String toString() {
-        return String.format("Elipse [Centro: %s, DMayor: %.2f, DMenor: %.2f]", centerPoint, sMayorAxis, sMinorAxis);
+        return String.format("%s [Centro: %s, DMayor: %.2f, DMenor: %.2f]", figureName, centerPoint, sMayorAxis, sMinorAxis);
     }
 
     // --- IMPLEMENTACIÓN DE FIGURE ---

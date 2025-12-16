@@ -1,22 +1,14 @@
 package backend.model;
 
-public class Circle extends Figure {
+public class Circle extends Ellipse {
 
-    private Point centerPoint;
+
     private double radius;
 
     public Circle(Point centerPoint, double radius) {
-        this.centerPoint = centerPoint;
+        super(centerPoint, 2 * radius, 2 * radius);
+        this.figureName = "Circulo";
         this.radius = radius;
-    }
-
-    @Override
-    public String getFigureName() {
-        return "Círculo";
-    }
-
-    public Point getCenterPoint() {
-        return centerPoint;
     }
 
     public double getRadius() {
@@ -25,8 +17,9 @@ public class Circle extends Figure {
 
     @Override
     public String toString() {
-        return String.format("Círculo [Centro: %s, Radio: %.2f]", centerPoint, radius);
+        return String.format("%s [Centro: %s, Diametro: %.2f]", figureName, centerPoint, sMayorAxis);
     }
+
 
     // --- MÉTODOS OBLIGATORIOS DE FIGURE ---
 
@@ -40,11 +33,6 @@ public class Circle extends Figure {
     public boolean contains(Point point) {
         // Lógica movida al backend: distancia menor al radio
         return centerPoint.getDistanceTo(point) < radius;
-    }
-
-    @Override
-    public void move(double diffX, double diffY) {
-        centerPoint = new Point(centerPoint.getX() + diffX, centerPoint.getY() + diffY);
     }
 
     @Override
