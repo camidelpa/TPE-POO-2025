@@ -61,7 +61,6 @@ public abstract class Figure {
     public void setBorderWidth(double borderWidth) { this.borderWidth = borderWidth; }
 
     // --- MÉTODOS ABSTRACTOS ---
-    public abstract void draw(GraphicsContext gc);
     public abstract boolean contains(Point point);
     public abstract void move(double diffX, double diffY);
     public abstract Point getCenter(); // Necesario para "Mover al Centro" [cite: 248]
