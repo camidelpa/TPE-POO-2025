@@ -75,4 +75,16 @@ public class Rectangle extends Figure {
         copyStyleTo(duplicated);
         return duplicated;
     }
+
+    @Override
+    public void moveToCenter(double canvasWidth, double canvasHeight) {
+        double width = Math.abs(bottomRight.getX() - topLeft.getX());
+        double height = Math.abs(bottomRight.getY() - topLeft.getY());
+
+        double centerX = canvasWidth / 2;
+        double centerY = canvasHeight / 2;
+
+        topLeft = new Point(centerX - width / 2, centerY - height / 2);
+        bottomRight = new Point(centerX + width / 2, centerY + height / 2);
+    }
 }

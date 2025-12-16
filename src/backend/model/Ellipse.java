@@ -72,4 +72,9 @@ public class Ellipse extends Figure {
         copyStyleTo(duplicated);
         return duplicated;
     }
+
+    @Override
+    public void moveToCenter(double canvasWidth, double canvasHeight) {
+        centerPoint = new Point(canvasWidth / 2, canvasHeight / 2);
+    }
 }

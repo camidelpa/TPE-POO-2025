@@ -77,5 +77,5 @@ public abstract class Figure {
 
     public abstract Figure duplicate(double offsetX, double offsetY);
     //public abstract List<Figure> divide();
-    //public abstract void moveToCenter(double canvasWidth, double canvasHeight);
+    public abstract void moveToCenter(double canvasWidth, double canvasHeight);
 }

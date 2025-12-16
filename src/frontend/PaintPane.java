@@ -120,6 +120,10 @@ public class PaintPane extends BorderPane {
 
         duplicateButton.setMinWidth(90);
         duplicateButton.setCursor(Cursor.HAND);
+        divideButton.setMinWidth(90);
+        divideButton.setCursor(Cursor.HAND);
+        centerButton.setMinWidth(90);
+        centerButton.setCursor(Cursor.HAND);
 
 
         duplicateButton.setOnAction(event -> {
@@ -134,6 +138,14 @@ public class PaintPane extends BorderPane {
             }
         });
 
+
+        centerButton.setOnAction(event -> {
+            if (selectedFigure != null) {
+                selectedFigure.moveToCenter(canvas.getWidth(), canvas.getHeight());
+                redrawCanvas();
+                statusPane.updateStatus("Figura movida al centro");
+            }
+        });
 
 
 
