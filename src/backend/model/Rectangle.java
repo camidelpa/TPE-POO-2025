@@ -3,7 +3,7 @@ package backend.model;
 public class Rectangle extends Figure {
 
     private Point topLeft, bottomRight;
-    private final String figureName = "Rectangulo";
+    protected String figureName = "Rectangulo";
 
     public Rectangle(Point topLeft, Point bottomRight) {
         this.topLeft = topLeft;
