@@ -79,28 +79,20 @@ public class Rectangle extends Figure {
         List<Figure> result = new ArrayList<>();
 
         double width = Math.abs(bottomRight.getX() - topLeft.getX());
-        double height = Math.abs(bottomRight.getY() - topLeft.getY());
-        double newWidth = width / 2;
-        double newHeight = height / 2;
+        double quarterHeight = (Math.abs(bottomRight.getY() - topLeft.getY()))/4;
 
-        Point center = getCenter();
-        Point newP1 = new Point(center.getX() - newWidth / 2, center.getY() - newHeight / 2);
+        Point leftTopLeft = new Point(topLeft.getX(), topLeft.getY() + quarterHeight);
+        Point leftBottomRight = new Point(topLeft.getX() + width / 2, bottomRight.getY() - quarterHeight);
+        Rectangle left = new Rectangle(leftTopLeft, leftBottomRight);
+        copyStyleTo(left);
 
-        // create two new rectangles or squares
-        Figure f1, f2;
-        if (this instanceof Square) {
-            f1 = new Square(newP1, newWidth);
-            f2 = new Square(newP1, newWidth);
-        } else {
-            Point newP2 = new Point(center.getX() + newWidth / 2, center.getY() + newHeight / 2);
-            f1 = new Rectangle(newP1, newP2);
-            f2 = new Rectangle(newP1, newP2);
-        }
-        copyStyleTo(f1);
-        copyStyleTo(f2);
+        Point rightTopLeft = new Point(topLeft.getX() + width / 2, topLeft.getY() + quarterHeight);
+        Point rightBottomRight = new Point(bottomRight.getX(), bottomRight.getY() - quarterHeight);
+        Rectangle right = new Rectangle(rightTopLeft, rightBottomRight);
+        copyStyleTo(right);
 
-        result.add(f1);
-        result.add(f2);
+        result.add(left);
+        result.add(right);
         return result;
     }
 
