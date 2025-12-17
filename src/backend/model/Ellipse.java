@@ -74,17 +74,25 @@ public class Ellipse extends Figure {
     public List<Figure> divide() {
         List<Figure> result = new ArrayList<>();
 
-        double newAxisX = sAxisX / 2;
-        double newAxisY = sAxisY / 2;
+        double halfXAxis = sAxisX / 2;
+        double halfYAxis = sAxisY / 2;
 
-        Ellipse e1 = new Ellipse(centerPoint, newAxisX, newAxisY);
-        copyStyleTo(e1);
+        Point leftCenter = new Point(
+                centerPoint.getX() - halfXAxis / 2,
+                centerPoint.getY()
+        );
+        Ellipse left = new Ellipse(leftCenter, halfXAxis, halfYAxis);
+        copyStyleTo(left);
 
-        Ellipse e2 = new Ellipse(centerPoint, newAxisX, newAxisY);
-        copyStyleTo(e2);
+        Point rightCenter = new Point(
+                centerPoint.getX() + halfXAxis / 2,
+                centerPoint.getY()
+        );
+        Ellipse right = new Ellipse(rightCenter, halfXAxis, halfYAxis);
+        copyStyleTo(right);
 
-        result.add(e1);
-        result.add(e2);
+        result.add(left);
+        result.add(right);
         return result;
     }
 
