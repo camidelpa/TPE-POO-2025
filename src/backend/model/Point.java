@@ -9,13 +9,9 @@ public class Point {
         this.y = y;
     }
 
-    public double getX() {
-        return x;
-    }
+    public double getX() { return x; }
 
-    public double getY() {
-        return y;
-    }
+    public double getY() { return y; }
 
     // pitagoras to calculate distance between this point and another point
     // needed to know if theres a click on te circle ;)

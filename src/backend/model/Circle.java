@@ -1,8 +1,6 @@
 package backend.model;
 
 public class Circle extends Ellipse {
-
-
     private final double radius;
 
     public Circle(Point centerPoint, double radius) {
@@ -20,24 +18,16 @@ public class Circle extends Ellipse {
         return String.format("%s [Centro: %s, Diametro: %.2f]", figureName, centerPoint, sAxisX);
     }
 
-
-    // --- MÉTODOS OBLIGATORIOS DE FIGURE ---
-
     @Override
-    public Point getCenter() {
-        // Para un círculo, el centro es su propiedad centerPoint
-        return centerPoint;
-    }
+    public Point getCenter() { return centerPoint; }
 
     @Override
     public boolean contains(Point point) {
-        // Lógica movida al backend: distancia menor al radio
         return centerPoint.getDistanceTo(point) < radius;
     }
 
     @Override
     public Figure deepCopy() {
-        // Crea una copia nueva para la funcionalidad "Duplicar"
         return new Circle(new Point(centerPoint.getX(), centerPoint.getY()), radius);
     }
 }

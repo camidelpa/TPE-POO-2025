@@ -6,9 +6,7 @@ import java.util.List;
 public class Ellipse extends Figure {
 
     protected String figureName = "Elipse";
-
     protected Point centerPoint;
-    // Cambio de nombre: Ahora representan explícitamente el eje horizontal (X) y vertical (Y)
     protected double sAxisX, sAxisY;
 
     public Ellipse(Point centerPoint, double sAxisX, double sAxisY) {
@@ -18,38 +16,24 @@ public class Ellipse extends Figure {
     }
 
     @Override
-    public String getFigureName() {
-        return figureName;
-    }
+    public String getFigureName() { return figureName; }
 
-    public Point getCenterPoint() {
-        return centerPoint;
-    }
+    public Point getCenterPoint() { return centerPoint; }
 
-    // Getters renombrados para ser consistentes
-    public double getsAxisX() {
-        return sAxisX;
-    }
+    public double getsAxisX() { return sAxisX; }
 
-    public double getsAxisY() {
-        return sAxisY;
-    }
+    public double getsAxisY() { return sAxisY; }
+
+    @Override
+    public Point getCenter() { return centerPoint;}
 
     @Override
     public String toString() {
         return String.format("%s [Centro: %s, Eje X: %.2f, Eje Y: %.2f]", figureName, centerPoint, sAxisX, sAxisY);
     }
 
-    // --- IMPLEMENTACIÓN DE FIGURE ---
-
-    @Override
-    public Point getCenter() {
-        return centerPoint;
-    }
-
     @Override
     public boolean contains(Point point) {
-        // Fórmula matemática usando los nuevos nombres
         double normalizedX = Math.pow(point.getX() - centerPoint.getX(), 2) / Math.pow(sAxisX, 2);
         double normalizedY = Math.pow(point.getY() - centerPoint.getY(), 2) / Math.pow(sAxisY, 2);
         return (normalizedX + normalizedY) <= 1.0;

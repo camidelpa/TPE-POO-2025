@@ -45,7 +45,6 @@ public class Rectangle extends Figure {
 
     @Override
     public Point getCenter() {
-        // Calcula el promedio de X y el promedio de Y
         double centerX = (topLeft.getX() + bottomRight.getX()) / 2;
         double centerY = (topLeft.getY() + bottomRight.getY()) / 2;
         return new Point(centerX, centerY);
@@ -79,36 +78,24 @@ public class Rectangle extends Figure {
     public List<Figure> divide() {
         List<Figure> result = new ArrayList<>();
 
-        // 1. Calculamos ancho y alto actuales
         double width = Math.abs(bottomRight.getX() - topLeft.getX());
         double height = Math.abs(bottomRight.getY() - topLeft.getY());
-
-        // 2. Nuevas dimensiones (La mitad)
         double newWidth = width / 2;
         double newHeight = height / 2;
 
-        // 3. Calculamos el centro para mantenerlas concéntricas (solapadas)
         Point center = getCenter();
-
-        // 4. Calculamos el nuevo TopLeft centrado
         Point newP1 = new Point(center.getX() - newWidth / 2, center.getY() - newHeight / 2);
 
-        // 5. Creamos las figuras
+        // create two new rectangles or squares
         Figure f1, f2;
-
-        // TRUCO: Si "esto" es un Cuadrado, devolvemos Cuadrados. Si es Rectángulo, Rectángulos.
         if (this instanceof Square) {
-            // Constructor de Square: (topLeft, size)
             f1 = new Square(newP1, newWidth);
             f2 = new Square(newP1, newWidth);
         } else {
-            // Constructor de Rectangle: (topLeft, bottomRight)
             Point newP2 = new Point(center.getX() + newWidth / 2, center.getY() + newHeight / 2);
             f1 = new Rectangle(newP1, newP2);
             f2 = new Rectangle(newP1, newP2);
         }
-
-        // 6. Copiamos estilos
         copyStyleTo(f1);
         copyStyleTo(f2);
 

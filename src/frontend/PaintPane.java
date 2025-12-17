@@ -24,14 +24,12 @@ import java.util.Map;
 
 public class PaintPane extends BorderPane {
 
-	// backend
+	// canvas and state
 	private final CanvasState canvasState;
-
-	// canvas and GraphicsContext
 	private final Canvas canvas = new Canvas(800, 600);
 	private final GraphicsContext gc = canvas.getGraphicsContext2D();
 
-	// Tools
+	// tools
 	private final ToggleButton selectionButton = new ToggleButton("Seleccionar");
 	private final ToggleButton rectangleButton = new ToggleButton("Rectángulo");
 	private final ToggleButton circleButton = new ToggleButton("Círculo");
@@ -43,14 +41,14 @@ public class PaintPane extends BorderPane {
     private final Button divideButton = new Button("Dividir");
     private final Button centerButton = new Button("Al Centro");
 
-	// 1. Shadows
+	// shadows
 	private final ChoiceBox<ShadowType> shadowBox = new ChoiceBox<>();
 
-	// 2. Fills
+	// fills
 	private final ColorPicker fillColorPicker1 = new ColorPicker(Color.YELLOW);
 	private final ColorPicker fillColorPicker2 = new ColorPicker(Color.RED);
 
-	// 3. Borders
+	// borders
 	private final ChoiceBox<BorderType> borderBox = new ChoiceBox<>();
 	private final Slider borderSlider = new Slider(1, 20, 1);
 
@@ -85,16 +83,16 @@ public class PaintPane extends BorderPane {
 			tool.setCursor(Cursor.HAND);
 		}
 
-		// Shadows
+		// shadows
 		shadowBox.getItems().addAll(ShadowType.values());
 		shadowBox.setValue(ShadowType.NONE);
 		shadowBox.setTooltip(new Tooltip("Tipo de Sombra"));
 
-		// Fills
+		// fills
 		fillColorPicker1.setMaxWidth(90);
 		fillColorPicker2.setMaxWidth(90);
 
-		// Borders
+		// borders
 		borderBox.getItems().addAll(BorderType.values());
 		borderBox.setValue(BorderType.NORMAL);
 		borderSlider.setShowTickMarks(true);
@@ -273,16 +271,25 @@ public class PaintPane extends BorderPane {
 			Point eventPoint = new Point(event.getX(), event.getY());
 			boolean found = false;
 			StringBuilder label = new StringBuilder();
+
 			for(Figure figure : canvasState.figures()) {
 				if(figure.contains(eventPoint)) {
 					found = true;
 					label.append(figure.toString());
 				}
 			}
+
 			if(found) {
 				statusPane.updateStatus(label.toString());
 			} else {
-				statusPane.updateStatus(eventPoint.toString());
+				statusPane.updateStatus(eventPoint.toString()); // show coords
+			}
+
+			// cursor change logic
+			if (selectionButton.isSelected()) {
+				canvas.setCursor(found ? Cursor.HAND : Cursor.DEFAULT);
+			} else {
+				canvas.setCursor(Cursor.CROSSHAIR);
 			}
 		});
 
@@ -316,26 +323,20 @@ public class PaintPane extends BorderPane {
 		canvas.setOnMouseDragged(event -> {
 			Point eventPoint = new Point(event.getX(), event.getY());
 
-			// CASO A: MOVER (Modo Selección)
+			// move logic
 			if (selectionButton.isSelected() && selectedFigure != null) {
-				// 1. Calculamos cuánto se movió el mouse desde el último evento
 				double diffX = eventPoint.getX() - startPoint.getX();
 				double diffY = eventPoint.getY() - startPoint.getY();
-
-				// 2. Movemos la figura esa cantidad EXACTA (sin dividir por 100)
 				selectedFigure.move(diffX, diffY);
 
-				// 3. ACTUALIZAMOS EL PUNTO DE INICIO
-				// Esto es vital: ahora el "nuevo inicio" es donde está el mouse ahora.
-				// Si no hacemos esto, la figura acelerará exponencialmente.
+				// update startPoint for continuous movement
 				startPoint = eventPoint;
 
 				redrawCanvas();
 			}
-			// CASO B: DIBUJAR (Preview)
+
+			// drawing logic
 			else if (!selectionButton.isSelected()) {
-				// Aquí NO actualizamos startPoint, porque necesitamos que siga anclado
-				// al lugar donde hiciste click inicial para calcular el tamaño.
 				previewFigure = createFigure(startPoint, eventPoint);
 				redrawCanvas();
 			}
@@ -383,7 +384,7 @@ public class PaintPane extends BorderPane {
 
 		for(Figure figure : sortedFigures) {
 			if (!layersVisibility.getOrDefault(figure.getLayer(), true)) {
-				continue; // skip invisible layers
+				continue; // skip? invisible layers
 			}
 
 			if (figure.getShadowType() != ShadowType.NONE) {
