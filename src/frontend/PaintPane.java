@@ -14,6 +14,13 @@ import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.RadialGradient;
 import javafx.scene.paint.Stop;
+import javafx.geometry.Pos;
+import javafx.scene.layout.HBox;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 public class PaintPane extends BorderPane {
 
@@ -51,6 +58,20 @@ public class PaintPane extends BorderPane {
 	private Figure selectedFigure;
 	private final StatusPane statusPane;
 	private Figure previewFigure;
+
+	// layer management (not implemented in UI yet)
+	private int currentLayer = 0;
+	private final Map<Integer, Boolean> layersVisibility = new HashMap<>();
+	private final List<Integer> availableLayers = new ArrayList<>();
+	private int nextLayerId = 3;
+
+	// layer UI components
+	private final ChoiceBox<String> layersBox = new ChoiceBox<>();
+	private final ToggleGroup visibilityGroup = new ToggleGroup();
+	private final RadioButton showLayerRb = new RadioButton("Mostrar");
+	private final RadioButton hideLayerRb = new RadioButton("Ocultar");
+	private final Button addLayerBtn = new Button("Agregar Capa");
+	private final Button deleteLayerBtn = new Button("Eliminar Capa");
 
 	public PaintPane(CanvasState canvasState, StatusPane statusPane) {
 		this.canvasState = canvasState;
@@ -157,7 +178,68 @@ public class PaintPane extends BorderPane {
             }
         });
 
+		// layer management setup
+		availableLayers.add(0); availableLayers.add(1); availableLayers.add(2);
+		layersVisibility.put(0, true); layersVisibility.put(1, true); layersVisibility.put(2, true);
 
+		// ChoiceBox configuration
+		updateLayersBox();
+		layersBox.getSelectionModel().selectFirst();
+
+		layersBox.getSelectionModel().selectedIndexProperty().addListener((obs, oldVal, newVal) -> {
+			if (newVal.intValue() >= 0) {
+				currentLayer = availableLayers.get(newVal.intValue());
+				boolean isVisible = layersVisibility.get(currentLayer);
+				showLayerRb.setSelected(isVisible);
+				hideLayerRb.setSelected(!isVisible);
+			}
+		});
+
+		// show/hide buttons
+		showLayerRb.setToggleGroup(visibilityGroup);
+		hideLayerRb.setToggleGroup(visibilityGroup);
+		showLayerRb.setSelected(true);
+
+		showLayerRb.setOnAction(e -> { layersVisibility.put(currentLayer, true); redrawCanvas(); });
+		hideLayerRb.setOnAction(e -> { layersVisibility.put(currentLayer, false); redrawCanvas(); });
+
+		// add layer button
+		addLayerBtn.setOnAction(e -> {
+			int newId = nextLayerId++;
+			availableLayers.add(newId);
+			layersVisibility.put(newId, true);
+			updateLayersBox();
+			layersBox.getSelectionModel().selectLast();
+		});
+
+		// delete layer button
+		deleteLayerBtn.setOnAction(e -> {
+			if (currentLayer <= 2) {
+				statusPane.updateStatus("No se pueden eliminar las capas iniciales");
+				return;
+			}
+			List<Figure> toDelete = new ArrayList<>();
+			for (Figure f : canvasState.figures()) {
+				if (f.getLayer() == currentLayer) toDelete.add(f);
+			}
+			for (Figure f : toDelete) canvasState.deleteFigure(f);
+
+			layersVisibility.remove(currentLayer);
+			availableLayers.remove((Integer) currentLayer);
+
+			updateLayersBox();
+			layersBox.getSelectionModel().selectFirst();
+			redrawCanvas();
+		});
+
+		// Layout Topbar
+		HBox topBar = new HBox(10);
+		topBar.setPadding(new Insets(10));
+		topBar.setAlignment(Pos.CENTER_LEFT);
+		topBar.setStyle("-fx-background-color: #999");
+
+		topBar.getChildren().addAll(new Label("Capas:"), layersBox, showLayerRb, hideLayerRb, addLayerBtn, deleteLayerBtn);
+		setTop(topBar);
 
         // Layout Sidebar
 		VBox buttonsBox = new VBox(10);
@@ -182,8 +264,6 @@ public class PaintPane extends BorderPane {
         buttonsBox.getChildren().add(duplicateButton);
         buttonsBox.getChildren().add(divideButton);
         buttonsBox.getChildren().add(centerButton);
-
-
 
         canvas.setOnMousePressed(event -> {
 			startPoint = new Point(event.getX(), event.getY());
@@ -295,100 +375,61 @@ public class PaintPane extends BorderPane {
 	private void redrawCanvas() {
 		gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-		for(Figure figure : canvasState.figures()) {
+		List<Figure> sortedFigures = new ArrayList<>();
+		for (Figure f : canvasState.figures()) {
+			sortedFigures.add(f);
+		}
+		sortedFigures.sort(Comparator.comparingInt(Figure::getLayer));
 
-			// 1. Draw
+		for(Figure figure : sortedFigures) {
+			if (!layersVisibility.getOrDefault(figure.getLayer(), true)) {
+				continue; // skip invisible layers
+			}
+
 			if (figure.getShadowType() != ShadowType.NONE) {
 				double offset = 10.0;
-				double shadowX = 0;
-				double shadowY = 0;
-				Color shadowColor = Color.GRAY;
-
+				double shadowX = 0; double shadowY = 0; Color shadowColor = Color.GRAY;
 				switch (figure.getShadowType()) {
-					case SIMPLE:
-						shadowX = offset; shadowY = offset;
-						shadowColor = Color.GRAY;
-						break;
-					case COLORED:
-						shadowX = offset; shadowY = offset;
-						shadowColor = figure.getFillColor1().darker();
-						break;
-					case SIMPLE_INVERSE:
-						shadowX = -offset; shadowY = -offset;
-						shadowColor = Color.GRAY;
-						break;
-					case COLORED_INVERSE:
-						shadowX = -offset; shadowY = -offset;
-						shadowColor = figure.getFillColor1().darker();
-						break;
+					case SIMPLE: shadowX = offset; shadowY = offset; shadowColor = Color.GRAY; break;
+					case COLORED: shadowX = offset; shadowY = offset; shadowColor = figure.getFillColor1().darker(); break;
+					case SIMPLE_INVERSE: shadowX = -offset; shadowY = -offset; shadowColor = Color.GRAY; break;
+					case COLORED_INVERSE: shadowX = -offset; shadowY = -offset; shadowColor = figure.getFillColor1().darker(); break;
 					default: break;
 				}
-
-				gc.setFill(shadowColor);
-				gc.setStroke(Color.TRANSPARENT);
+				gc.setFill(shadowColor); gc.setStroke(Color.TRANSPARENT);
 				drawFigureShape(figure, shadowX, shadowY);
 			}
 
-			// 2. Gradient
-			Stop[] stops = new Stop[] { new Stop(0, figure.getFillColor1()), new Stop(1, figure.getFillColor2()) };
+			Stop[] stops = { new Stop(0, figure.getFillColor1()), new Stop(1, figure.getFillColor2()) };
+			if (figure instanceof Ellipse) gc.setFill(new RadialGradient(0, 0, 0.5, 0.5, 0.5, true, CycleMethod.NO_CYCLE, stops));
+			else gc.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE, stops));
 
-			if (figure instanceof Ellipse) {
-				RadialGradient radialGradient = new RadialGradient(0, 0, 0.5, 0.5, 0.5, true, CycleMethod.NO_CYCLE, stops);
-				gc.setFill(radialGradient);
-			} else {
-				// Rectangle y Square (hijo de Rectangle) entran acá
-				LinearGradient linearGradient = new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE, stops);
-				gc.setFill(linearGradient);
-			}
-
-			// 3. Border
 			if (figure == selectedFigure) {
-				gc.setStroke(Color.RED);
-				gc.setLineDashes((double[]) null);
-				gc.setLineWidth(figure.getBorderWidth());
+				gc.setStroke(Color.RED); gc.setLineDashes((double[]) null);
 			} else {
 				gc.setStroke(Color.BLACK);
-				gc.setLineWidth(figure.getBorderWidth());
-
-				switch (figure.getBorderType()) {
-					case DOTTED_SIMPLE:
-						gc.setLineDashes(10d);
-						break;
-					case DOTTED_COMPLEX:
-						gc.setLineDashes(30d, 10d, 15d, 10d);
-						break;
-					case NORMAL:
-					default:
-						gc.setLineDashes((double[]) null);
-						break;
-				}
+				if(figure.getBorderType() == BorderType.DOTTED_SIMPLE) gc.setLineDashes(10d);
+				else if(figure.getBorderType() == BorderType.DOTTED_COMPLEX) gc.setLineDashes(30d, 10d, 15d, 10d);
+				else gc.setLineDashes((double[]) null);
 			}
+			gc.setLineWidth(figure.getBorderWidth());
 
-			// 4. Draw Figure
 			drawFigureShape(figure, 0, 0);
 		}
-		// ghost preview
-		if (previewFigure != null) {
-			// little transparency cuz its cool af :)
-			gc.setGlobalAlpha(0.5);
 
+		if (previewFigure != null) {
+			gc.setGlobalAlpha(0.5);
 			Stop[] stops = { new Stop(0, previewFigure.getFillColor1()), new Stop(1, previewFigure.getFillColor2()) };
-			if (previewFigure instanceof Ellipse) {
-				gc.setFill(new RadialGradient(0, 0, 0.5, 0.5, 0.5, true, CycleMethod.NO_CYCLE, stops));
-			} else {
-				gc.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE, stops));
-			}
+			if (previewFigure instanceof Ellipse) gc.setFill(new RadialGradient(0, 0, 0.5, 0.5, 0.5, true, CycleMethod.NO_CYCLE, stops));
+			else gc.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE, stops));
 
 			gc.setStroke(Color.BLACK);
 			gc.setLineWidth(previewFigure.getBorderWidth());
-
-			if (previewFigure.getBorderType() == BorderType.DOTTED_SIMPLE) gc.setLineDashes(10d);
-			else if (previewFigure.getBorderType() == BorderType.DOTTED_COMPLEX) gc.setLineDashes(30d, 10d, 15d, 10d);
+			if(previewFigure.getBorderType() == BorderType.DOTTED_SIMPLE) gc.setLineDashes(10d);
+			else if(previewFigure.getBorderType() == BorderType.DOTTED_COMPLEX) gc.setLineDashes(30d, 10d, 15d, 10d);
 			else gc.setLineDashes((double[]) null);
 
 			drawFigureShape(previewFigure, 0, 0);
-
-			// restore opacity
 			gc.setGlobalAlpha(1.0);
 		}
 	}
@@ -415,9 +456,8 @@ public class PaintPane extends BorderPane {
 		}
 	}
 
-	// Método auxiliar para crear la figura según el botón seleccionado
 	private Figure createFigure(Point start, Point end) {
-		// Normalizamos coordenadas para permitir dibujar en cualquier dirección
+		// normalizing coordinates to be able to draw in any direction
 		double minX = Math.min(start.getX(), end.getX());
 		double minY = Math.min(start.getY(), end.getY());
 		double maxX = Math.max(start.getX(), end.getX());
@@ -432,14 +472,11 @@ public class PaintPane extends BorderPane {
 			newFigure = new Rectangle(topLeft, bottomRight);
 		}
 		else if(circleButton.isSelected()) {
-			// Para el círculo usamos la distancia como radio
 			double radius = Math.abs(end.getX() - start.getX());
 			newFigure = new Circle(start, radius);
 		}
 		else if(squareButton.isSelected()) {
-			// El cuadrado toma el tamaño del ancho del arrastre
 			double size = Math.abs(end.getX() - start.getX());
-			// Ajustamos dirección si se arrastra a la izquierda
 			double adjustX = end.getX() < start.getX() ? -size : 0;
 			double adjustY = end.getY() < start.getY() ? -size : 0;
 			Point adjustedStart = new Point(start.getX() + adjustX, start.getY() + adjustY);
@@ -453,15 +490,33 @@ public class PaintPane extends BorderPane {
 			newFigure = new Ellipse(center, width, height); // width=EjeX, height=EjeY
 		}
 
-		// Asignar los estilos actuales a la figura (para que el preview se vea con color)
 		if (newFigure != null) {
 			newFigure.setFillColor1(fillColorPicker1.getValue());
 			newFigure.setFillColor2(fillColorPicker2.getValue());
 			newFigure.setShadowType(shadowBox.getValue());
 			newFigure.setBorderType(borderBox.getValue());
 			newFigure.setBorderWidth(borderSlider.getValue());
+			newFigure.setLayer(currentLayer);
 		}
 
 		return newFigure;
+	}
+
+	private void updateLayersBox() {
+		// save current selection
+		String selected = layersBox.getValue();
+
+		layersBox.getItems().clear();
+		availableLayers.sort(java.util.Comparator.naturalOrder());
+		for (Integer id : availableLayers) {
+			layersBox.getItems().add("Capa " + (id + 1));
+		}
+
+		// restore selection if possible
+		if (selected != null && layersBox.getItems().contains(selected)) {
+			layersBox.setValue(selected);
+		} else if (!layersBox.getItems().isEmpty()) {
+			layersBox.getSelectionModel().selectLast();
+		}
 	}
 }
