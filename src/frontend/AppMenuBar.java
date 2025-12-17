@@ -16,8 +16,9 @@ public class AppMenuBar extends MenuBar {
             alert.setHeaderText("Salir de la aplicación");
             alert.setContentText("¿Está seguro que desea salir de la aplicación?");
             Optional<ButtonType> result = alert.showAndWait();
-            result.map(buttonType -> buttonType.equals(ButtonType.OK))
-                    .ifPresent(x -> Platform.exit());
+            if(result.isPresent()&&result.get()==ButtonType.OK){
+                Platform.exit();
+            }
         });
         file.getItems().add(exitMenuItem);
         Menu help = new Menu("Ayuda");
