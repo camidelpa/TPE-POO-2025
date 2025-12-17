@@ -574,6 +574,16 @@ public class PaintPane extends BorderPane {
 		});
 	}
 
+    private Stop[] getFilledStops(Figure figure) {
+        Stop[] stops = {new Stop(0, figure.getFillColor1()), new Stop(1, figure.getFillColor2())};
+        if (figure instanceof Ellipse) {
+            gc.setFill(new RadialGradient(0, 0, 0.5, 0.5, 0.5, true, CycleMethod.NO_CYCLE, stops));
+        } else {
+            gc.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE, stops));
+        }
+        return stops;
+    }
+
 	// Draw logic
 	private void redrawCanvas() {
 		gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
@@ -603,9 +613,7 @@ public class PaintPane extends BorderPane {
 				drawFigureShape(figure, shadowX, shadowY);
 			}
 
-			Stop[] stops = { new Stop(0, figure.getFillColor1()), new Stop(1, figure.getFillColor2()) };
-			if (figure instanceof Ellipse) gc.setFill(new RadialGradient(0, 0, 0.5, 0.5, 0.5, true, CycleMethod.NO_CYCLE, stops));
-			else gc.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE, stops));
+			Stop[] stops = getFilledStops(figure);
 
 			if (figure == selectedFigure) {
 				gc.setStroke(Color.RED); gc.setLineDashes((double[]) null);
@@ -622,9 +630,8 @@ public class PaintPane extends BorderPane {
 
 		if (previewFigure != null) {
 			gc.setGlobalAlpha(0.5);
-			Stop[] stops = { new Stop(0, previewFigure.getFillColor1()), new Stop(1, previewFigure.getFillColor2()) };
-			if (previewFigure instanceof Ellipse) gc.setFill(new RadialGradient(0, 0, 0.5, 0.5, 0.5, true, CycleMethod.NO_CYCLE, stops));
-			else gc.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE, stops));
+
+            Stop[] stops = getFilledStops(previewFigure);
 
 			gc.setStroke(Color.BLACK);
 			gc.setLineWidth(previewFigure.getBorderWidth());
