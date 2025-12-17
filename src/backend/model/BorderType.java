@@ -1,7 +1,18 @@
 package backend.model;
 
 public enum BorderType {
-    NORMAL,
-    DOTTED_SIMPLE,
-    DOTTED_COMPLEX
+    NORMAL("Normal"),
+    DOTTED_SIMPLE("Simple"),
+    DOTTED_COMPLEX("Complejo");
+
+    private final String label;
+
+    BorderType(String label) {
+        this.label = label;
+    }
+
+    @Override
+    public String toString() {
+        return label;
+    }
 }

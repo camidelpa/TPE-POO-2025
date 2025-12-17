@@ -71,6 +71,21 @@ public class PaintPane extends BorderPane {
 	private final Button addLayerBtn = new Button("Agregar Capa");
 	private final Button deleteLayerBtn = new Button("Eliminar Capa");
 
+	private final String[] rdmMessages = {
+			"Estado actual: objeto == null",
+			"Ninguna instancia seleccionada",
+			"El heap está listo para crear objetos",
+			"Fábrica de figuras en standby",
+			"Polimorfismo en pausa ⏸",
+			"Seleccioná una clase para instanciar",
+			"El canvas espera su próximo objeto",
+			"Sin referencias activas por aquí",
+			"Listo para recibir un new Figura()",
+			"Modo edición deshabilitado (por ahora)",
+			"Interfaz esperando interacción",
+			"Garbage Collector aburrido 😴"
+	};
+
 	public PaintPane(CanvasState canvasState, StatusPane statusPane) {
 		this.canvasState = canvasState;
 		this.statusPane = statusPane;
@@ -229,6 +244,28 @@ public class PaintPane extends BorderPane {
 			layersBox.getSelectionModel().selectFirst();
 			redrawCanvas();
 		});
+
+		// tool help messages
+		setToolHelp(selectionButton, "Seleccionar: Haga clic en una figura para editarla o arrastre para moverla");
+		setToolHelp(rectangleButton, "Rectángulo: Arrastre el mouse para crear");
+		setToolHelp(circleButton, "Círculo: Arrastre desde el centro para definir el radio");
+		setToolHelp(squareButton, "Cuadrado: Arrastre para definir el tamaño");
+		setToolHelp(ellipseButton, "Elipse: Arrastre el área que contendrá la elipse");
+		setToolHelp(deleteButton, "Borrar: Elimina la figura seleccionada permanentemente");
+
+		setToolHelp(duplicateButton, "Duplicar: Crea una copia exacta de la figura seleccionada");
+		setToolHelp(divideButton, "Dividir: Parte la figura seleccionada en dos mitades");
+		setToolHelp(centerButton, "Centrar: Mueve la figura seleccionada al centro del lienzo");
+
+		setToolHelp(shadowBox, "Sombra: Elija un estilo de sombra para la figura");
+		setToolHelp(fillColorPicker1, "Color Primario: Relleno principal o inicio del degradado");
+		setToolHelp(fillColorPicker2, "Color Secundario: Color final del degradado");
+		setToolHelp(borderSlider, "Grosor: Ajuste el ancho del borde");
+		setToolHelp(borderBox, "Tipo de Borde: Elija el estilo de línea del contorno");
+
+		setToolHelp(layersBox, "Capas: Elija en qué capa dibujar");
+		setToolHelp(addLayerBtn, "Nueva Capa: Crea una capa transparente encima de las actuales");
+		setToolHelp(deleteLayerBtn, "Eliminar Capa: Borra la capa actual y todas sus figuras");
 
 		// Layout Topbar
 		HBox topBar = new HBox(10);
@@ -519,5 +556,14 @@ public class PaintPane extends BorderPane {
 		} else if (!layersBox.getItems().isEmpty()) {
 			layersBox.getSelectionModel().selectLast();
 		}
+	}
+
+	// tool help messages
+	private void setToolHelp(javafx.scene.control.Control tool, String message) {
+		tool.setOnMouseEntered(event -> statusPane.updateStatus(message));
+		tool.setOnMouseExited(event -> {
+			int index = (int) (Math.random() * rdmMessages.length);
+			statusPane.updateStatus(rdmMessages[index]);
+		});
 	}
 }
