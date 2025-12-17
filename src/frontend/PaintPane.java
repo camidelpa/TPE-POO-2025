@@ -377,79 +377,13 @@ public class PaintPane extends BorderPane {
 		setToolHelp(themeToggle, "Cambiar Tema: Alternar entre modo Claro y Oscuro");
 
 
-		themeToggle.setOnAction(event -> {
-			if (themeToggle.isSelected()) {
-				// dark mode on
-				themeToggle.setText("☀");
-				setStyle("-fx-background-color: #2b2b2b;");
+        // Inicializar ThemeManager
+        frontend.managers.ThemeManager themeManager = new frontend.managers.ThemeManager(this, topBar, buttonsBox, statusPane, themeToggle);
 
-				String darkBarStyle = "-fx-background-color: #3c3f41; -fx-padding: 10; -fx-spacing: 10;";
-				String sidebarStyle = "-fx-background-color: #3c3f41; -fx-padding: 5; -fx-spacing: 10;";
-
-				topBar.setStyle(darkBarStyle);
-				buttonsBox.setStyle(sidebarStyle);
-				statusPane.setStyle("-fx-background-color: #3c3f41;");
-
-				// i m using 'Labeled' to include Label and ChoiceBox, but exclude Buttons
-				topBar.getChildren().forEach(node -> {
-					if (node instanceof Button && "❓".equals(((Button) node).getText())) {
-						return;
-					}
-					if (node instanceof Label || node instanceof RadioButton || node instanceof CheckBox) {
-						node.setStyle("-fx-text-fill: white;");
-					} else if (node instanceof Button || node instanceof ToggleButton) {
-						node.setStyle("-fx-text-fill: black;");
-					}
-				});
-
-				buttonsBox.getChildren().forEach(node -> {
-					if (node instanceof Label || node instanceof RadioButton || node instanceof CheckBox) {
-						node.setStyle("-fx-text-fill: white;");
-					} else if (node instanceof Button || node instanceof ToggleButton) {
-						node.setStyle("-fx-text-fill: black;");
-					}
-				});
-
-				statusPane.getChildren().forEach(node -> {
-					if (node instanceof javafx.scene.control.Labeled) {
-						node.setStyle("-fx-text-fill: #f0f0f0; -fx-font-weight: bold;");
-					}
-				});
-
-			} else {
-				// dark mode off
-				themeToggle.setText("🌙");
-				setStyle("-fx-background-color: white;");
-
-				String lightBarStyle = "-fx-background-color: #999; -fx-padding: 10; -fx-spacing: 10;";
-				String sidebarStyle = "-fx-background-color: #999; -fx-padding: 5; -fx-spacing: 10;";
-
-				topBar.setStyle(lightBarStyle);
-				buttonsBox.setStyle(sidebarStyle);
-				statusPane.setStyle("-fx-background-color: #999;");
-
-				topBar.getChildren().forEach(node -> {
-					if (node instanceof Button && "❓".equals(((Button) node).getText())) {
-						return;
-					}
-					if (node instanceof javafx.scene.control.Labeled) {
-						node.setStyle("-fx-text-fill: black;");
-					}
-				});
-
-				buttonsBox.getChildren().forEach(node -> {
-					if (node instanceof javafx.scene.control.Labeled) {
-						node.setStyle("-fx-text-fill: black;");
-					}
-				});
-
-				statusPane.getChildren().forEach(node -> {
-					if (node instanceof javafx.scene.control.Labeled) {
-						node.setStyle("-fx-text-fill: black;");
-					}
-				});
-			}
-		});
+        // Configurar acción del botón delegando al manager
+        themeToggle.setOnAction(event -> {
+            themeManager.setDarkMode(themeToggle.isSelected());
+        });
 
 		topBar.getChildren().addAll(
 				new Label("Capas:"), layersBox,
