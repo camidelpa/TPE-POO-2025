@@ -29,7 +29,7 @@ public class PaintPane extends BorderPane {
 
 	// canvas and state
 	private final CanvasState canvasState;
-	private final Canvas canvas = new Canvas(800, 600);
+	private final Canvas canvas = new Canvas(900, 780);
 	private final GraphicsContext gc = canvas.getGraphicsContext2D();
 
 	// tools
@@ -646,17 +646,14 @@ public class PaintPane extends BorderPane {
 		sortedFigures.sort(Comparator.comparingInt(Figure::getLayer));
 
         for (Figure figure : sortedFigures) {
-            // 1. Verificar visibilidad de Capa (Punto 3)
             boolean layerVisible = layersVisibility.getOrDefault(figure.getLayer(), true);
 
-            // 2. Verificar filtro de Etiquetas (Punto 4)
             boolean tagsVisible = true;
             if (soloFilterRb.isSelected()) {
                 String filterText = filterField.getText().trim().split("\\s+")[0]; // Solo primera palabra [cite: 328]
                 tagsVisible = !filterText.isEmpty() && figure.hasTag(filterText);
             }
 
-            // Si no cumple ambas condiciones, se oculta [cite: 331, 332]
             if (!layerVisible || !tagsVisible) {
                 continue;
             }
