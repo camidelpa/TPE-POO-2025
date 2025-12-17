@@ -76,6 +76,6 @@ public abstract class Figure {
     public abstract Figure deepCopy(); // Necesario para "Duplicar" [cite: 231]
 
     public abstract Figure duplicate(double offsetX, double offsetY);
-    //public abstract List<Figure> divide();
+    public abstract List<Figure> divide();
     public abstract void moveToCenter(double canvasWidth, double canvasHeight);
 }

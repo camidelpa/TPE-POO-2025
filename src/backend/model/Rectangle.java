@@ -1,5 +1,8 @@
 package backend.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Rectangle extends Figure {
 
     private Point topLeft, bottomRight;
@@ -74,6 +77,28 @@ public class Rectangle extends Figure {
         Rectangle duplicated = new Rectangle(newTopLeft, newBottomRight);
         copyStyleTo(duplicated);
         return duplicated;
+    }
+
+    @Override
+    public List<Figure> divide() {
+        List<Figure> result = new ArrayList<>();
+
+        double width = Math.abs(bottomRight.getX() - topLeft.getX());
+        double height = Math.abs(bottomRight.getY() - topLeft.getY());
+
+        Point leftTopLeft = new Point(topLeft.getX(), topLeft.getY());
+        Point leftBottomRight = new Point(topLeft.getX() + width / 2, bottomRight.getY());
+        Rectangle left = new Rectangle(leftTopLeft, leftBottomRight);
+        copyStyleTo(left);
+
+        Point rightTopLeft = new Point(topLeft.getX() + width / 2, topLeft.getY());
+        Point rightBottomRight = new Point(bottomRight.getX(), bottomRight.getY());
+        Rectangle right = new Rectangle(rightTopLeft, rightBottomRight);
+        copyStyleTo(right);
+
+        result.add(left);
+        result.add(right);
+        return result;
     }
 
     @Override

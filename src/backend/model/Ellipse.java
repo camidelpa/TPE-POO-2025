@@ -1,5 +1,8 @@
 package backend.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Ellipse extends Figure {
 
     protected String figureName = "Elipse";
@@ -71,6 +74,31 @@ public class Ellipse extends Figure {
         Ellipse duplicated = new Ellipse(newCenter, sMayorAxis, sMinorAxis);
         copyStyleTo(duplicated);
         return duplicated;
+    }
+
+    @Override
+    public List<Figure> divide() {
+        List<Figure> result = new ArrayList<>();
+
+        double halfMayorAxis = sMayorAxis / 2;
+
+        Point leftCenter = new Point(
+                centerPoint.getX() - halfMayorAxis / 2,
+                centerPoint.getY()
+        );
+        Ellipse left = new Ellipse(leftCenter, halfMayorAxis, sMinorAxis);
+        copyStyleTo(left);
+
+        Point rightCenter = new Point(
+                centerPoint.getX() + halfMayorAxis / 2,
+                centerPoint.getY()
+        );
+        Ellipse right = new Ellipse(rightCenter, halfMayorAxis, sMinorAxis);
+        copyStyleTo(right);
+
+        result.add(left);
+        result.add(right);
+        return result;
     }
 
     @Override
