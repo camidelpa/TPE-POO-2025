@@ -27,7 +27,7 @@ public class AppMenuBar extends MenuBar {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Acerca De");
             alert.setHeaderText("Paint");
-            alert.setContentText("TPE Final POO Diciembre 2025");
+            alert.setContentText("TPE Final POO Diciembre 2025, por Agusti, Canelo, y Del Papa.");
             alert.showAndWait();
         });
         help.getItems().add(aboutMenuItem);
