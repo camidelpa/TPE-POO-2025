@@ -404,6 +404,33 @@ public class PaintPane extends BorderPane {
 
 		setLeft(buttonsBox);
 		setRight(canvas);
+
+		// keyboard 'shortcuts'
+		canvas.setFocusTraversable(true);
+		canvas.addEventFilter(javafx.scene.input.MouseEvent.ANY, e -> canvas.requestFocus());
+		canvas.setOnKeyPressed(event -> {
+			switch (event.getCode()) {
+				case DELETE:
+				case BACK_SPACE:
+					//  Supr or Backspace: deletes the figure
+					if (selectedFigure != null) {
+						canvasState.deleteFigure(selectedFigure);
+						selectedFigure = null;
+						redrawCanvas();
+						statusPane.updateStatus("Figura eliminada con teclado");
+					}
+					break;
+
+				case ESCAPE:
+					// Esc: deselects any selected figure
+					if (selectedFigure != null) {
+						selectedFigure = null;
+						redrawCanvas();
+						statusPane.updateStatus("Ninguna figura seleccionada");
+					}
+					break;
+			}
+		});
 	}
 
 	// Draw logic
@@ -563,4 +590,6 @@ public class PaintPane extends BorderPane {
 			statusPane.updateStatus(rdmMessages[index]);
 		});
 	}
+
+
 }
