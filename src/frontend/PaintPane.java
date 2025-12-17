@@ -372,6 +372,9 @@ public class PaintPane extends BorderPane {
 
 				// i m using 'Labeled' to include Label and ChoiceBox, but exclude Buttons
 				topBar.getChildren().forEach(node -> {
+					if (node instanceof Button && "❓".equals(((Button) node).getText())) {
+						return;
+					}
 					if (node instanceof Label || node instanceof RadioButton || node instanceof CheckBox) {
 						node.setStyle("-fx-text-fill: white;");
 					} else if (node instanceof Button || node instanceof ToggleButton) {
@@ -406,6 +409,9 @@ public class PaintPane extends BorderPane {
 				statusPane.setStyle("-fx-background-color: #999;");
 
 				topBar.getChildren().forEach(node -> {
+					if (node instanceof Button && "❓".equals(((Button) node).getText())) {
+						return;
+					}
 					if (node instanceof javafx.scene.control.Labeled) {
 						node.setStyle("-fx-text-fill: black;");
 					}
