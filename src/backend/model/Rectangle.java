@@ -84,13 +84,11 @@ public class Rectangle extends Figure {
         Point leftTopLeft = new Point(topLeft.getX(), topLeft.getY() + quarterHeight);
         Point leftBottomRight = new Point(topLeft.getX() + width / 2, bottomRight.getY() - quarterHeight);
         Rectangle left = new Rectangle(leftTopLeft, leftBottomRight);
-        left.addTag(this.getTagsString());
         copyStyleTo(left);
 
         Point rightTopLeft = new Point(topLeft.getX() + width / 2, topLeft.getY() + quarterHeight);
         Point rightBottomRight = new Point(bottomRight.getX(), bottomRight.getY() - quarterHeight);
         Rectangle right = new Rectangle(rightTopLeft, rightBottomRight);
-        right.addTag(this.getTagsString());
         copyStyleTo(right);
 
         result.add(left);
