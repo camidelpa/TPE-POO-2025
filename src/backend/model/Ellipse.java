@@ -8,12 +8,13 @@ public class Ellipse extends Figure {
     protected String figureName = "Elipse";
 
     protected Point centerPoint;
-    protected double sMayorAxis, sMinorAxis; // Semiejes (radios)
+    // Cambio de nombre: Ahora representan explícitamente el eje horizontal (X) y vertical (Y)
+    protected double sAxisX, sAxisY;
 
-    public Ellipse(Point centerPoint, double sMayorAxis, double sMinorAxis) {
+    public Ellipse(Point centerPoint, double sAxisX, double sAxisY) {
         this.centerPoint = centerPoint;
-        this.sMayorAxis = sMayorAxis;
-        this.sMinorAxis = sMinorAxis;
+        this.sAxisX = sAxisX;
+        this.sAxisY = sAxisY;
     }
 
     @Override
@@ -25,17 +26,18 @@ public class Ellipse extends Figure {
         return centerPoint;
     }
 
-    public double getsMayorAxis() {
-        return sMayorAxis;
+    // Getters renombrados para ser consistentes
+    public double getsAxisX() {
+        return sAxisX;
     }
 
-    public double getsMinorAxis() {
-        return sMinorAxis;
+    public double getsAxisY() {
+        return sAxisY;
     }
 
     @Override
     public String toString() {
-        return String.format("%s [Centro: %s, DMayor: %.2f, DMenor: %.2f]", figureName, centerPoint, sMayorAxis, sMinorAxis);
+        return String.format("%s [Centro: %s, Eje X: %.2f, Eje Y: %.2f]", figureName, centerPoint, sAxisX, sAxisY);
     }
 
     // --- IMPLEMENTACIÓN DE FIGURE ---
@@ -47,10 +49,9 @@ public class Ellipse extends Figure {
 
     @Override
     public boolean contains(Point point) {
-        // Fórmula matemática para saber si un punto está dentro de una elipse:
-        // (x - h)^2 / a^2 + (y - k)^2 / b^2 <= 1
-        double normalizedX = Math.pow(point.getX() - centerPoint.getX(), 2) / Math.pow(sMayorAxis, 2);
-        double normalizedY = Math.pow(point.getY() - centerPoint.getY(), 2) / Math.pow(sMinorAxis, 2);
+        // Fórmula matemática usando los nuevos nombres
+        double normalizedX = Math.pow(point.getX() - centerPoint.getX(), 2) / Math.pow(sAxisX, 2);
+        double normalizedY = Math.pow(point.getY() - centerPoint.getY(), 2) / Math.pow(sAxisY, 2);
         return (normalizedX + normalizedY) <= 1.0;
     }
 
@@ -61,7 +62,7 @@ public class Ellipse extends Figure {
 
     @Override
     public Figure deepCopy() {
-        return new Ellipse(new Point(centerPoint.getX(), centerPoint.getY()), sMayorAxis, sMinorAxis);
+        return new Ellipse(new Point(centerPoint.getX(), centerPoint.getY()), sAxisX, sAxisY);
     }
 
     @Override
@@ -71,7 +72,7 @@ public class Ellipse extends Figure {
                 centerPoint.getY() + offsetY
         );
 
-        Ellipse duplicated = new Ellipse(newCenter, sMayorAxis, sMinorAxis);
+        Ellipse duplicated = new Ellipse(newCenter, sAxisX, sAxisY);
         copyStyleTo(duplicated);
         return duplicated;
     }
@@ -80,24 +81,17 @@ public class Ellipse extends Figure {
     public List<Figure> divide() {
         List<Figure> result = new ArrayList<>();
 
-        double halfMayorAxis = sMayorAxis / 2;
+        double newAxisX = sAxisX / 2;
+        double newAxisY = sAxisY / 2;
 
-        Point leftCenter = new Point(
-                centerPoint.getX() - halfMayorAxis / 2,
-                centerPoint.getY()
-        );
-        Ellipse left = new Ellipse(leftCenter, halfMayorAxis, sMinorAxis);
-        copyStyleTo(left);
+        Ellipse e1 = new Ellipse(centerPoint, newAxisX, newAxisY);
+        copyStyleTo(e1);
 
-        Point rightCenter = new Point(
-                centerPoint.getX() + halfMayorAxis / 2,
-                centerPoint.getY()
-        );
-        Ellipse right = new Ellipse(rightCenter, halfMayorAxis, sMinorAxis);
-        copyStyleTo(right);
+        Ellipse e2 = new Ellipse(centerPoint, newAxisX, newAxisY);
+        copyStyleTo(e2);
 
-        result.add(left);
-        result.add(right);
+        result.add(e1);
+        result.add(e2);
         return result;
     }
 

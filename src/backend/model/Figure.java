@@ -25,7 +25,6 @@ public abstract class Figure {
         this.fillColor2 = Color.RED;
     }
 
-    // --- MÉTODOS COMPARTIDOS ---
     public void addTag(String tag) {
         if (!tags.contains(tag)) {
             tags.add(tag);

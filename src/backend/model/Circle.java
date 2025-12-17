@@ -17,7 +17,7 @@ public class Circle extends Ellipse {
 
     @Override
     public String toString() {
-        return String.format("%s [Centro: %s, Diametro: %.2f]", figureName, centerPoint, sMayorAxis);
+        return String.format("%s [Centro: %s, Diametro: %.2f]", figureName, centerPoint, sAxisX);
     }
 
 

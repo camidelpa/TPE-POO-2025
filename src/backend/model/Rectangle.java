@@ -31,10 +31,6 @@ public class Rectangle extends Figure {
         return String.format("%s [ %s , %s ]", figureName, topLeft, bottomRight);
     }
 
-
-    // --- IMPLEMENTACIÓN DE FIGURE ---
-
-
     @Override
     public boolean contains(Point point) {
         return point.getX() > topLeft.getX() && point.getX() < bottomRight.getX() &&
@@ -83,21 +79,41 @@ public class Rectangle extends Figure {
     public List<Figure> divide() {
         List<Figure> result = new ArrayList<>();
 
+        // 1. Calculamos ancho y alto actuales
         double width = Math.abs(bottomRight.getX() - topLeft.getX());
         double height = Math.abs(bottomRight.getY() - topLeft.getY());
 
-        Point leftTopLeft = new Point(topLeft.getX(), topLeft.getY());
-        Point leftBottomRight = new Point(topLeft.getX() + width / 2, bottomRight.getY());
-        Rectangle left = new Rectangle(leftTopLeft, leftBottomRight);
-        copyStyleTo(left);
+        // 2. Nuevas dimensiones (La mitad)
+        double newWidth = width / 2;
+        double newHeight = height / 2;
 
-        Point rightTopLeft = new Point(topLeft.getX() + width / 2, topLeft.getY());
-        Point rightBottomRight = new Point(bottomRight.getX(), bottomRight.getY());
-        Rectangle right = new Rectangle(rightTopLeft, rightBottomRight);
-        copyStyleTo(right);
+        // 3. Calculamos el centro para mantenerlas concéntricas (solapadas)
+        Point center = getCenter();
 
-        result.add(left);
-        result.add(right);
+        // 4. Calculamos el nuevo TopLeft centrado
+        Point newP1 = new Point(center.getX() - newWidth / 2, center.getY() - newHeight / 2);
+
+        // 5. Creamos las figuras
+        Figure f1, f2;
+
+        // TRUCO: Si "esto" es un Cuadrado, devolvemos Cuadrados. Si es Rectángulo, Rectángulos.
+        if (this instanceof Square) {
+            // Constructor de Square: (topLeft, size)
+            f1 = new Square(newP1, newWidth);
+            f2 = new Square(newP1, newWidth);
+        } else {
+            // Constructor de Rectangle: (topLeft, bottomRight)
+            Point newP2 = new Point(center.getX() + newWidth / 2, center.getY() + newHeight / 2);
+            f1 = new Rectangle(newP1, newP2);
+            f2 = new Rectangle(newP1, newP2);
+        }
+
+        // 6. Copiamos estilos
+        copyStyleTo(f1);
+        copyStyleTo(f2);
+
+        result.add(f1);
+        result.add(f2);
         return result;
     }
 

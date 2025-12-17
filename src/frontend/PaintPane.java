@@ -47,14 +47,10 @@ public class PaintPane extends BorderPane {
 	private final ChoiceBox<BorderType> borderBox = new ChoiceBox<>();
 	private final Slider borderSlider = new Slider(1, 20, 1);
 
-	// Draw a figure
 	private Point startPoint;
-
-	// Select a figure
 	private Figure selectedFigure;
-
-	// StatusBar
 	private final StatusPane statusPane;
+	private Figure previewFigure;
 
 	public PaintPane(CanvasState canvasState, StatusPane statusPane) {
 		this.canvasState = canvasState;
@@ -193,46 +189,6 @@ public class PaintPane extends BorderPane {
 			startPoint = new Point(event.getX(), event.getY());
 		});
 
-		canvas.setOnMouseReleased(event -> {
-			Point endPoint = new Point(event.getX(), event.getY());
-			if(startPoint == null) {
-				return ;
-			}
-			if(endPoint.getX() < startPoint.getX() || endPoint.getY() < startPoint.getY()) {
-				return ;
-			}
-			Figure newFigure = null;
-
-
-			if(rectangleButton.isSelected()) {
-				newFigure = new Rectangle(startPoint, endPoint);
-			}
-			else if(circleButton.isSelected()) {
-				double circleRadius = Math.abs(endPoint.getX() - startPoint.getX());
-				newFigure = new Circle(startPoint, circleRadius);
-			} else if(squareButton.isSelected()) {
-				double size = Math.abs(endPoint.getX() - startPoint.getX());
-				newFigure = new Square(startPoint, size);
-			} else if(ellipseButton.isSelected()) {
-				Point centerPoint = new Point(Math.abs(endPoint.getX() + startPoint.getX()) / 2, (Math.abs((endPoint.getY() + startPoint.getY())) / 2));
-				double sMayorAxis = Math.abs(endPoint.getX() - startPoint.getX());
-				double sMinorAxis = Math.abs(endPoint.getY() - startPoint.getY());
-				newFigure = new Ellipse(centerPoint, sMayorAxis, sMinorAxis);
-			} else {
-				return ;
-			}
-
-			newFigure.setFillColor1(fillColorPicker1.getValue());
-			newFigure.setFillColor2(fillColorPicker2.getValue());
-			newFigure.setShadowType(shadowBox.getValue());
-			newFigure.setBorderType(borderBox.getValue());
-			newFigure.setBorderWidth(borderSlider.getValue());
-
-			canvasState.addFigure(newFigure);
-			startPoint = null;
-			redrawCanvas();
-		});
-
 		canvas.setOnMouseMoved(event -> {
 			Point eventPoint = new Point(event.getX(), event.getY());
 			boolean found = false;
@@ -278,15 +234,49 @@ public class PaintPane extends BorderPane {
 		});
 
 		canvas.setOnMouseDragged(event -> {
-			if(selectionButton.isSelected() && selectedFigure != null) {
-				Point eventPoint = new Point(event.getX(), event.getY());
-				double diffX = (eventPoint.getX() - startPoint.getX());
-				double diffY = (eventPoint.getY() - startPoint.getY());
+			Point eventPoint = new Point(event.getX(), event.getY());
 
+			// CASO A: MOVER (Modo Selección)
+			if (selectionButton.isSelected() && selectedFigure != null) {
+				// 1. Calculamos cuánto se movió el mouse desde el último evento
+				double diffX = eventPoint.getX() - startPoint.getX();
+				double diffY = eventPoint.getY() - startPoint.getY();
+
+				// 2. Movemos la figura esa cantidad EXACTA (sin dividir por 100)
 				selectedFigure.move(diffX, diffY);
-                startPoint = eventPoint;
+
+				// 3. ACTUALIZAMOS EL PUNTO DE INICIO
+				// Esto es vital: ahora el "nuevo inicio" es donde está el mouse ahora.
+				// Si no hacemos esto, la figura acelerará exponencialmente.
+				startPoint = eventPoint;
+
 				redrawCanvas();
 			}
+			// CASO B: DIBUJAR (Preview)
+			else if (!selectionButton.isSelected()) {
+				// Aquí NO actualizamos startPoint, porque necesitamos que siga anclado
+				// al lugar donde hiciste click inicial para calcular el tamaño.
+				previewFigure = createFigure(startPoint, eventPoint);
+				redrawCanvas();
+			}
+		});
+
+		canvas.setOnMouseReleased(event -> {
+			Point endPoint = new Point(event.getX(), event.getY());
+			if(startPoint == null) return;
+
+			// only if we are in drawing mode, not selection
+			if (!selectionButton.isSelected()) {
+				Figure newFigure = createFigure(startPoint, endPoint);
+
+				if (newFigure != null) {
+					canvasState.addFigure(newFigure);
+				}
+			}
+
+			startPoint = null;
+			previewFigure = null; // erasing the ghost preview
+			redrawCanvas();
 		});
 
 		deleteButton.setOnAction(event -> {
@@ -377,6 +367,30 @@ public class PaintPane extends BorderPane {
 			// 4. Draw Figure
 			drawFigureShape(figure, 0, 0);
 		}
+		// ghost preview
+		if (previewFigure != null) {
+			// little transparency cuz its cool af :)
+			gc.setGlobalAlpha(0.5);
+
+			Stop[] stops = { new Stop(0, previewFigure.getFillColor1()), new Stop(1, previewFigure.getFillColor2()) };
+			if (previewFigure instanceof Ellipse) {
+				gc.setFill(new RadialGradient(0, 0, 0.5, 0.5, 0.5, true, CycleMethod.NO_CYCLE, stops));
+			} else {
+				gc.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE, stops));
+			}
+
+			gc.setStroke(Color.BLACK);
+			gc.setLineWidth(previewFigure.getBorderWidth());
+
+			if (previewFigure.getBorderType() == BorderType.DOTTED_SIMPLE) gc.setLineDashes(10d);
+			else if (previewFigure.getBorderType() == BorderType.DOTTED_COMPLEX) gc.setLineDashes(30d, 10d, 15d, 10d);
+			else gc.setLineDashes((double[]) null);
+
+			drawFigureShape(previewFigure, 0, 0);
+
+			// restore opacity
+			gc.setGlobalAlpha(1.0);
+		}
 	}
 
 	private void drawFigureShape(Figure figure, double offsetX, double offsetY) {
@@ -391,13 +405,63 @@ public class PaintPane extends BorderPane {
 
 		} else if(figure instanceof Ellipse) {
 			Ellipse ellipse = (Ellipse) figure;
-			double width = ellipse.getsMayorAxis();
-			double height = ellipse.getsMinorAxis();
+			double width = ellipse.getsAxisX();
+			double height = ellipse.getsAxisY();
 			double x = (ellipse.getCenterPoint().getX() - (width / 2)) + offsetX;
 			double y = (ellipse.getCenterPoint().getY() - (height / 2)) + offsetY;
 
 			gc.fillOval(x, y, width, height);
 			if (offsetX == 0) gc.strokeOval(x - offsetX, y - offsetY, width, height);
 		}
+	}
+
+	// Método auxiliar para crear la figura según el botón seleccionado
+	private Figure createFigure(Point start, Point end) {
+		// Normalizamos coordenadas para permitir dibujar en cualquier dirección
+		double minX = Math.min(start.getX(), end.getX());
+		double minY = Math.min(start.getY(), end.getY());
+		double maxX = Math.max(start.getX(), end.getX());
+		double maxY = Math.max(start.getY(), end.getY());
+
+		Point topLeft = new Point(minX, minY);
+		Point bottomRight = new Point(maxX, maxY);
+
+		Figure newFigure = null;
+
+		if(rectangleButton.isSelected()) {
+			newFigure = new Rectangle(topLeft, bottomRight);
+		}
+		else if(circleButton.isSelected()) {
+			// Para el círculo usamos la distancia como radio
+			double radius = Math.abs(end.getX() - start.getX());
+			newFigure = new Circle(start, radius);
+		}
+		else if(squareButton.isSelected()) {
+			// El cuadrado toma el tamaño del ancho del arrastre
+			double size = Math.abs(end.getX() - start.getX());
+			// Ajustamos dirección si se arrastra a la izquierda
+			double adjustX = end.getX() < start.getX() ? -size : 0;
+			double adjustY = end.getY() < start.getY() ? -size : 0;
+			Point adjustedStart = new Point(start.getX() + adjustX, start.getY() + adjustY);
+
+			newFigure = new Square(adjustedStart, size);
+		}
+		else if(ellipseButton.isSelected()) {
+			Point center = new Point((minX + maxX) / 2, (minY + maxY) / 2);
+			double width = maxX - minX;
+			double height = maxY - minY;
+			newFigure = new Ellipse(center, width, height); // width=EjeX, height=EjeY
+		}
+
+		// Asignar los estilos actuales a la figura (para que el preview se vea con color)
+		if (newFigure != null) {
+			newFigure.setFillColor1(fillColorPicker1.getValue());
+			newFigure.setFillColor2(fillColorPicker2.getValue());
+			newFigure.setShadowType(shadowBox.getValue());
+			newFigure.setBorderType(borderBox.getValue());
+			newFigure.setBorderWidth(borderSlider.getValue());
+		}
+
+		return newFigure;
 	}
 }
