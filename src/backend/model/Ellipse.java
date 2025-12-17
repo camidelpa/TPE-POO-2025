@@ -1,5 +1,7 @@
 package backend.model;
 
+import com.sun.scenario.effect.Brightpass;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,6 +84,7 @@ public class Ellipse extends Figure {
                 centerPoint.getY()
         );
         Ellipse left = new Ellipse(leftCenter, halfXAxis, halfYAxis);
+        left.addTag(this.getTagsString());
         copyStyleTo(left);
 
         Point rightCenter = new Point(
@@ -89,6 +92,7 @@ public class Ellipse extends Figure {
                 centerPoint.getY()
         );
         Ellipse right = new Ellipse(rightCenter, halfXAxis, halfYAxis);
+        right.addTag(this.getTagsString());
         copyStyleTo(right);
 
         result.add(left);
