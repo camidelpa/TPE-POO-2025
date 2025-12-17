@@ -15,6 +15,15 @@ public class Ellipse extends Figure {
         this.sAxisY = sAxisY;
     }
 
+    public Ellipse(Point startPoint, Point endPoint) {
+        this(
+                new Point((startPoint.getX() + endPoint.getX()) / 2,
+                        (startPoint.getY() + endPoint.getY()) / 2),
+                Math.abs(endPoint.getX() - startPoint.getX()),
+                Math.abs(endPoint.getY() - startPoint.getY())
+        );
+    }
+
     @Override
     public String getFigureName() { return figureName; }
 

@@ -9,6 +9,10 @@ public class Circle extends Ellipse {
         this.radius = radius;
     }
 
+    public Circle(Point centerPoint, Point edgePoint) {
+        this(centerPoint, Math.abs(edgePoint.getX() - centerPoint.getX()));
+    }
+
     public double getRadius() {
         return radius;
     }

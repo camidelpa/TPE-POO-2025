@@ -8,9 +8,9 @@ public class Rectangle extends Figure {
     private Point topLeft, bottomRight;
     protected String figureName = "Rectangulo";
 
-    public Rectangle(Point topLeft, Point bottomRight) {
-        this.topLeft = topLeft;
-        this.bottomRight = bottomRight;
+    public Rectangle(Point p1, Point p2) {
+        this.topLeft = new Point(Math.min(p1.getX(), p2.getX()), Math.min(p1.getY(), p2.getY()));
+        this.bottomRight = new Point(Math.max(p1.getX(), p2.getX()), Math.max(p1.getY(), p2.getY()));
     }
 
     @Override
@@ -114,5 +114,13 @@ public class Rectangle extends Figure {
 
         topLeft = new Point(centerX - width / 2, centerY - height / 2);
         bottomRight = new Point(centerX + width / 2, centerY + height / 2);
+    }
+
+    public double getWidth() {
+        return Math.abs(bottomRight.getX() - topLeft.getX());
+    }
+
+    public double getHeight() {
+        return Math.abs(bottomRight.getY() - topLeft.getY());
     }
 }

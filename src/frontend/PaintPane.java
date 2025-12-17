@@ -23,6 +23,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 public class PaintPane extends BorderPane {
 
@@ -39,9 +40,12 @@ public class PaintPane extends BorderPane {
 	private final ToggleButton ellipseButton = new ToggleButton("Elipse");
 	private final ToggleButton deleteButton = new ToggleButton("Borrar");
 
-    private final Button duplicateButton = new Button("Duplicar");
-    private final Button divideButton = new Button("Dividir");
-    private final Button centerButton = new Button("Al Centro");
+	private final Button duplicateButton = new Button("Duplicar");
+	private final Button divideButton = new Button("Dividir");
+	private final Button centerButton = new Button("Al Centro");
+
+	// creation strategies map to reduce imperativity
+	private final Map<ToggleButton, BiFunction<Point, Point, Figure>> creationStrategies = new HashMap<>();
 
 	// shadows
 	private final ChoiceBox<ShadowType> shadowBox = new ChoiceBox<>();
@@ -91,6 +95,12 @@ public class PaintPane extends BorderPane {
 	public PaintPane(CanvasState canvasState, StatusPane statusPane) {
 		this.canvasState = canvasState;
 		this.statusPane = statusPane;
+
+		// Initialize creation strategies (removes if/else from createFigure)
+		creationStrategies.put(rectangleButton, Rectangle::new);
+		creationStrategies.put(circleButton, Circle::new);
+		creationStrategies.put(squareButton, Square::new);
+		creationStrategies.put(ellipseButton, Ellipse::new);
 
 		ToggleButton[] toolsArr = {selectionButton, rectangleButton, circleButton, squareButton, ellipseButton, deleteButton};
 		ToggleGroup tools = new ToggleGroup();
@@ -150,48 +160,48 @@ public class PaintPane extends BorderPane {
 			}
 		});
 
-        duplicateButton.setMinWidth(90);
-        duplicateButton.setCursor(Cursor.HAND);
-        divideButton.setMinWidth(90);
-        divideButton.setCursor(Cursor.HAND);
-        centerButton.setMinWidth(90);
-        centerButton.setCursor(Cursor.HAND);
+		duplicateButton.setMinWidth(90);
+		duplicateButton.setCursor(Cursor.HAND);
+		divideButton.setMinWidth(90);
+		divideButton.setCursor(Cursor.HAND);
+		centerButton.setMinWidth(90);
+		centerButton.setCursor(Cursor.HAND);
 
 
-        duplicateButton.setOnAction(event -> {
-            if (selectedFigure != null) {
-                double offsetX = 20.0;
-                double offsetY = 20.0;
+		duplicateButton.setOnAction(event -> {
+			if (selectedFigure != null) {
+				double offsetX = 20.0;
+				double offsetY = 20.0;
 
-                Figure duplicated = selectedFigure.duplicate(offsetX, offsetY);
-                canvasState.addFigure(duplicated);
-                redrawCanvas();
-                statusPane.updateStatus("Figura duplicada");
-            }
-        });
+				Figure duplicated = selectedFigure.duplicate(offsetX, offsetY);
+				canvasState.addFigure(duplicated);
+				redrawCanvas();
+				statusPane.updateStatus("Figura duplicada");
+			}
+		});
 
-        divideButton.setOnAction(event -> {
-            if (selectedFigure != null) {
-                java.util.List<Figure> dividedFigures = selectedFigure.divide();
+		divideButton.setOnAction(event -> {
+			if (selectedFigure != null) {
+				java.util.List<Figure> dividedFigures = selectedFigure.divide();
 
-                canvasState.deleteFigure(selectedFigure);
+				canvasState.deleteFigure(selectedFigure);
 
-                for (Figure fig : dividedFigures) {
-                    canvasState.addFigure(fig);
-                }
-                selectedFigure = null;
-                redrawCanvas();
-                statusPane.updateStatus("Figura dividida");
-            }
-        });
+				for (Figure fig : dividedFigures) {
+					canvasState.addFigure(fig);
+				}
+				selectedFigure = null;
+				redrawCanvas();
+				statusPane.updateStatus("Figura dividida");
+			}
+		});
 
-        centerButton.setOnAction(event -> {
-            if (selectedFigure != null) {
-                selectedFigure.moveToCenter(canvas.getWidth(), canvas.getHeight());
-                redrawCanvas();
-                statusPane.updateStatus("Figura movida al centro");
-            }
-        });
+		centerButton.setOnAction(event -> {
+			if (selectedFigure != null) {
+				selectedFigure.moveToCenter(canvas.getWidth(), canvas.getHeight());
+				redrawCanvas();
+				statusPane.updateStatus("Figura movida al centro");
+			}
+		});
 
 		// layer management setup
 		availableLayers.add(0); availableLayers.add(1); availableLayers.add(2);
@@ -284,7 +294,7 @@ public class PaintPane extends BorderPane {
 		setToolHelp(addLayerBtn, "Nueva Capa: Crea una capa transparente encima de las actuales");
 		setToolHelp(deleteLayerBtn, "Eliminar Capa: Borra la capa actual y todas sus figuras");
 
-        // Layout Sidebar
+		// Layout Sidebar
 		VBox buttonsBox = new VBox(10);
 		buttonsBox.setPadding(new Insets(5));
 		buttonsBox.setStyle("-fx-background-color: #999");
@@ -303,10 +313,10 @@ public class PaintPane extends BorderPane {
 		buttonsBox.getChildren().add(borderSlider);
 		buttonsBox.getChildren().add(borderBox);
 
-        buttonsBox.getChildren().add(new Label("Acciones"));
-        buttonsBox.getChildren().add(duplicateButton);
-        buttonsBox.getChildren().add(divideButton);
-        buttonsBox.getChildren().add(centerButton);
+		buttonsBox.getChildren().add(new Label("Acciones"));
+		buttonsBox.getChildren().add(duplicateButton);
+		buttonsBox.getChildren().add(divideButton);
+		buttonsBox.getChildren().add(centerButton);
 
 		Button helpBtn = new Button("❓");
 		// help button styling with CSS for circular shape :)
@@ -438,7 +448,7 @@ public class PaintPane extends BorderPane {
 		);
 		setTop(topBar);
 
-        canvas.setOnMousePressed(event -> {
+		canvas.setOnMousePressed(event -> {
 			startPoint = new Point(event.getX(), event.getY());
 		});
 
@@ -574,15 +584,15 @@ public class PaintPane extends BorderPane {
 		});
 	}
 
-    private Stop[] getFilledStops(Figure figure) {
-        Stop[] stops = {new Stop(0, figure.getFillColor1()), new Stop(1, figure.getFillColor2())};
-        if (figure instanceof Ellipse) {
-            gc.setFill(new RadialGradient(0, 0, 0.5, 0.5, 0.5, true, CycleMethod.NO_CYCLE, stops));
-        } else {
-            gc.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE, stops));
-        }
-        return stops;
-    }
+	private Stop[] getFilledStops(Figure figure) {
+		Stop[] stops = {new Stop(0, figure.getFillColor1()), new Stop(1, figure.getFillColor2())};
+		if (figure instanceof Ellipse) {
+			gc.setFill(new RadialGradient(0, 0, 0.5, 0.5, 0.5, true, CycleMethod.NO_CYCLE, stops));
+		} else {
+			gc.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE, stops));
+		}
+		return stops;
+	}
 
 	// Draw logic
 	private void redrawCanvas() {
@@ -631,7 +641,7 @@ public class PaintPane extends BorderPane {
 		if (previewFigure != null) {
 			gc.setGlobalAlpha(0.5);
 
-            Stop[] stops = getFilledStops(previewFigure);
+			Stop[] stops = getFilledStops(previewFigure);
 
 			gc.setStroke(Color.BLACK);
 			gc.setLineWidth(previewFigure.getBorderWidth());
@@ -648,8 +658,10 @@ public class PaintPane extends BorderPane {
 
 		if(figure instanceof Rectangle) {
 			Rectangle rectangle = (Rectangle) figure;
-			double width = Math.abs(rectangle.getTopLeft().getX() - rectangle.getBottomRight().getX());
-			double height = Math.abs(rectangle.getTopLeft().getY() - rectangle.getBottomRight().getY());
+
+			// Geometry calculations removed from frontend (should use backend methods)
+			double width = rectangle.getWidth();
+			double height = rectangle.getHeight();
 
 			gc.fillRect(rectangle.getTopLeft().getX() + offsetX, rectangle.getTopLeft().getY() + offsetY, width, height);
 			if (offsetX == 0) gc.strokeRect(rectangle.getTopLeft().getX(), rectangle.getTopLeft().getY(), width, height);
@@ -667,49 +679,26 @@ public class PaintPane extends BorderPane {
 	}
 
 	private Figure createFigure(Point start, Point end) {
-		// normalizing coordinates to be able to draw in any direction
-		double minX = Math.min(start.getX(), end.getX());
-		double minY = Math.min(start.getY(), end.getY());
-		double maxX = Math.max(start.getX(), end.getX());
-		double maxY = Math.max(start.getY(), end.getY());
+		// logic moved to backend constructors to remove calculations here
 
-		Point topLeft = new Point(minX, minY);
-		Point bottomRight = new Point(maxX, maxY);
+		// Find the selected tool strategy
+		ToggleButton selectedTool = (ToggleButton) rectangleButton.getToggleGroup().getSelectedToggle();
 
-		Figure newFigure = null;
+		if (creationStrategies.containsKey(selectedTool)) {
+			Figure newFigure = creationStrategies.get(selectedTool).apply(start, end);
 
-		if(rectangleButton.isSelected()) {
-			newFigure = new Rectangle(topLeft, bottomRight);
-		}
-		else if(circleButton.isSelected()) {
-			double radius = Math.abs(end.getX() - start.getX());
-			newFigure = new Circle(start, radius);
-		}
-		else if(squareButton.isSelected()) {
-			double size = Math.abs(end.getX() - start.getX());
-			double adjustX = end.getX() < start.getX() ? -size : 0;
-			double adjustY = end.getY() < start.getY() ? -size : 0;
-			Point adjustedStart = new Point(start.getX() + adjustX, start.getY() + adjustY);
-
-			newFigure = new Square(adjustedStart, size);
-		}
-		else if(ellipseButton.isSelected()) {
-			Point center = new Point((minX + maxX) / 2, (minY + maxY) / 2);
-			double width = maxX - minX;
-			double height = maxY - minY;
-			newFigure = new Ellipse(center, width, height); // width=EjeX, height=EjeY
+			if (newFigure != null) {
+				newFigure.setFillColor1(fillColorPicker1.getValue());
+				newFigure.setFillColor2(fillColorPicker2.getValue());
+				newFigure.setShadowType(shadowBox.getValue());
+				newFigure.setBorderType(borderBox.getValue());
+				newFigure.setBorderWidth(borderSlider.getValue());
+				newFigure.setLayer(currentLayer);
+			}
+			return newFigure;
 		}
 
-		if (newFigure != null) {
-			newFigure.setFillColor1(fillColorPicker1.getValue());
-			newFigure.setFillColor2(fillColorPicker2.getValue());
-			newFigure.setShadowType(shadowBox.getValue());
-			newFigure.setBorderType(borderBox.getValue());
-			newFigure.setBorderWidth(borderSlider.getValue());
-			newFigure.setLayer(currentLayer);
-		}
-
-		return newFigure;
+		return null;
 	}
 
 	private void updateLayersBox() {
