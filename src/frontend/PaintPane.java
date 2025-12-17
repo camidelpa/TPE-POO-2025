@@ -92,6 +92,14 @@ public class PaintPane extends BorderPane {
 	// dark mode toggle
 	private final ToggleButton themeToggle = new ToggleButton("🌙");
 
+    private final TextArea tagsArea = new TextArea();
+    private final Button saveTagsBtn = new Button("Guardar");
+
+    private final ToggleGroup filterGroup = new ToggleGroup();
+    private final RadioButton allFilterRb = new RadioButton("Todas");
+    private final RadioButton soloFilterRb = new RadioButton("Solo");
+    private final TextField filterField = new TextField();
+
 	public PaintPane(CanvasState canvasState, StatusPane statusPane) {
 		this.canvasState = canvasState;
 		this.statusPane = statusPane;
@@ -317,6 +325,7 @@ public class PaintPane extends BorderPane {
 		buttonsBox.getChildren().add(duplicateButton);
 		buttonsBox.getChildren().add(divideButton);
 		buttonsBox.getChildren().add(centerButton);
+        buttonsBox.getChildren().addAll(new Label("Etiquetas"), tagsArea, saveTagsBtn);
 
 		Button helpBtn = new Button("❓");
 		// help button styling with CSS for circular shape :)
@@ -361,6 +370,7 @@ public class PaintPane extends BorderPane {
 		topBar.setPadding(new Insets(10));
 		topBar.setAlignment(Pos.CENTER_LEFT);
 		topBar.setStyle("-fx-background-color: #999");
+        topBar.getChildren().addAll(new Label("Mostrar Etiquetas:"), allFilterRb, soloFilterRb, filterField);
 
 		// dark mode toggle setup
 		themeToggle.setSelected(false);
@@ -497,8 +507,10 @@ public class PaintPane extends BorderPane {
 					shadowBox.setValue(selectedFigure.getShadowType());
 					borderBox.setValue(selectedFigure.getBorderType());
 					borderSlider.setValue(selectedFigure.getBorderWidth());
+                    tagsArea.setText(selectedFigure.getTagsString());
 				} else {
 					selectedFigure = null;
+                    tagsArea.clear();
 					statusPane.updateStatus("Ninguna figura encontrada");
 				}
 				redrawCanvas();
@@ -582,6 +594,35 @@ public class PaintPane extends BorderPane {
 					break;
 			}
 		});
+
+        // Configuración Sidebar (Etiquetas)
+        tagsArea.setPrefRowCount(3);
+        tagsArea.setPromptText("etiqueta1 etiqueta2...");
+        saveTagsBtn.setMaxWidth(Double.MAX_VALUE);
+
+        saveTagsBtn.setOnAction(e -> {
+            if (selectedFigure != null) {
+                // Separa el texto por espacios o saltos de línea [cite: 322, 323]
+                String[] parts = tagsArea.getText().trim().split("\\s+");
+                List<String> newTags = new ArrayList<>();
+                for (String p : parts) {
+                    if (!p.isEmpty()) newTags.add(p);
+                }
+                selectedFigure.replaceTags(newTags); // Reemplaza existentes [cite: 324]
+                statusPane.updateStatus("Etiquetas guardadas para " + selectedFigure.getFigureName());
+            }
+        });
+
+        // Configuración Topbar (Filtrado)
+        allFilterRb.setToggleGroup(filterGroup);
+        soloFilterRb.setToggleGroup(filterGroup);
+        allFilterRb.setSelected(true);
+
+        allFilterRb.setOnAction(e -> redrawCanvas());
+        soloFilterRb.setOnAction(e -> redrawCanvas());
+        filterField.textProperty().addListener((obs, old, newVal) -> {
+            if (soloFilterRb.isSelected()) redrawCanvas();
+        });
 	}
 
 	private Stop[] getFilledStops(Figure figure) {
@@ -604,25 +645,35 @@ public class PaintPane extends BorderPane {
 		}
 		sortedFigures.sort(Comparator.comparingInt(Figure::getLayer));
 
-		for(Figure figure : sortedFigures) {
-			if (!layersVisibility.getOrDefault(figure.getLayer(), true)) {
-				continue; // skip? invisible layers
-			}
+        for (Figure figure : sortedFigures) {
+            // 1. Verificar visibilidad de Capa (Punto 3)
+            boolean layerVisible = layersVisibility.getOrDefault(figure.getLayer(), true);
 
-			if (figure.getShadowType() != ShadowType.NONE) {
-				double offset = 10.0;
-				double shadowX = 0; double shadowY = 0; Color shadowColor = Color.GRAY;
-				switch (figure.getShadowType()) {
-					case SIMPLE: shadowX = offset; shadowY = offset; shadowColor = Color.GRAY; break;
-					case COLORED: shadowX = offset; shadowY = offset; shadowColor = figure.getFillColor1().darker(); break;
-					case SIMPLE_INVERSE: shadowX = -offset; shadowY = -offset; shadowColor = Color.GRAY; break;
-					case COLORED_INVERSE: shadowX = -offset; shadowY = -offset; shadowColor = figure.getFillColor1().darker(); break;
-					default: break;
-				}
-				gc.setFill(shadowColor); gc.setStroke(Color.TRANSPARENT);
-				drawFigureShape(figure, shadowX, shadowY);
-			}
+            // 2. Verificar filtro de Etiquetas (Punto 4)
+            boolean tagsVisible = true;
+            if (soloFilterRb.isSelected()) {
+                String filterText = filterField.getText().trim().split("\\s+")[0]; // Solo primera palabra [cite: 328]
+                tagsVisible = !filterText.isEmpty() && figure.hasTag(filterText);
+            }
 
+            // Si no cumple ambas condiciones, se oculta [cite: 331, 332]
+            if (!layerVisible || !tagsVisible) {
+                continue;
+            }
+
+            if (figure.getShadowType() != ShadowType.NONE) {
+                double offset = 10.0;
+                double shadowX = 0; double shadowY = 0; Color shadowColor = Color.GRAY;
+                switch (figure.getShadowType()) {
+                    case SIMPLE: shadowX = offset; shadowY = offset; shadowColor = Color.GRAY; break;
+                    case COLORED: shadowX = offset; shadowY = offset; shadowColor = figure.getFillColor1().darker(); break;
+                    case SIMPLE_INVERSE: shadowX = -offset; shadowY = -offset; shadowColor = Color.GRAY; break;
+                    case COLORED_INVERSE: shadowX = -offset; shadowY = -offset; shadowColor = figure.getFillColor1().darker(); break;
+                    default: break;
+                }
+                gc.setFill(shadowColor); gc.setStroke(Color.TRANSPARENT);
+                drawFigureShape(figure, shadowX, shadowY);
+        }
 			Stop[] stops = getFilledStops(figure);
 
 			if (figure == selectedFigure) {
