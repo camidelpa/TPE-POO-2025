@@ -9,7 +9,7 @@ public class StatusPane extends BorderPane {
 	private final Label statusLabel;
 
 	public StatusPane() {
-		setStyle("-fx-background-color: #4EBCF8");
+		setStyle("-fx-background-color: #999;");
 		statusLabel = new Label("");
 		statusLabel.setAlignment(Pos.CENTER);
 		statusLabel.setStyle("-fx-font-size: 16");

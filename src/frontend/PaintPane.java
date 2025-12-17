@@ -9,6 +9,8 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
@@ -45,7 +47,7 @@ public class PaintPane extends BorderPane {
 	private final ChoiceBox<ShadowType> shadowBox = new ChoiceBox<>();
 
 	// fills
-	private final ColorPicker fillColorPicker1 = new ColorPicker(Color.YELLOW);
+	private final ColorPicker fillColorPicker1 = new ColorPicker(Color.CYAN);
 	private final ColorPicker fillColorPicker2 = new ColorPicker(Color.RED);
 
 	// borders
@@ -82,6 +84,9 @@ public class PaintPane extends BorderPane {
 			"⌛Interfaz esperando interacción⌛",
 			"Garbage Collector aburrido 😴"
 	};
+
+	// dark mode toggle
+	private final ToggleButton themeToggle = new ToggleButton("🌙");
 
 	public PaintPane(CanvasState canvasState, StatusPane statusPane) {
 		this.canvasState = canvasState;
@@ -225,21 +230,36 @@ public class PaintPane extends BorderPane {
 		// delete layer button
 		deleteLayerBtn.setOnAction(e -> {
 			if (currentLayer <= 2) {
-				statusPane.updateStatus("No se pueden eliminar las capas iniciales");
+				Alert alert = new Alert(Alert.AlertType.WARNING);
+				alert.setTitle("Acción no permitida");
+				alert.setHeaderText("No se pueden eliminar las capas iniciales");
+				alert.setContentText("Las capas 1, 2 y 3 son fijas y necesarias para el sistema.");
+				alert.showAndWait();
 				return;
 			}
-			List<Figure> toDelete = new ArrayList<>();
-			for (Figure f : canvasState.figures()) {
-				if (f.getLayer() == currentLayer) toDelete.add(f);
-			}
-			for (Figure f : toDelete) canvasState.deleteFigure(f);
 
-			layersVisibility.remove(currentLayer);
-			availableLayers.remove((Integer) currentLayer);
+			Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+			alert.setTitle("Eliminar Capa");
+			alert.setHeaderText("¿Estás seguro de eliminar la Capa " + (currentLayer + 1) + "?");
+			alert.setContentText("Esta acción borrará todas las figuras de la capa y no se puede deshacer");
 
-			updateLayersBox();
-			layersBox.getSelectionModel().selectFirst();
-			redrawCanvas();
+			alert.showAndWait().ifPresent(response -> {
+				if (response == ButtonType.OK) {
+					List<Figure> toDelete = new ArrayList<>();
+					for (Figure f : canvasState.figures()) {
+						if (f.getLayer() == currentLayer) toDelete.add(f);
+					}
+					for (Figure f : toDelete) canvasState.deleteFigure(f);
+
+					layersVisibility.remove(currentLayer);
+					availableLayers.remove((Integer) currentLayer);
+
+					updateLayersBox();
+					layersBox.getSelectionModel().selectFirst();
+					redrawCanvas();
+					statusPane.updateStatus("Capa eliminada");
+				}
+			});
 		});
 
 		// tool help messages
@@ -264,15 +284,6 @@ public class PaintPane extends BorderPane {
 		setToolHelp(addLayerBtn, "Nueva Capa: Crea una capa transparente encima de las actuales");
 		setToolHelp(deleteLayerBtn, "Eliminar Capa: Borra la capa actual y todas sus figuras");
 
-		// Layout Topbar
-		HBox topBar = new HBox(10);
-		topBar.setPadding(new Insets(10));
-		topBar.setAlignment(Pos.CENTER_LEFT);
-		topBar.setStyle("-fx-background-color: #999");
-
-		topBar.getChildren().addAll(new Label("Capas:"), layersBox, showLayerRb, hideLayerRb, addLayerBtn, deleteLayerBtn);
-		setTop(topBar);
-
         // Layout Sidebar
 		VBox buttonsBox = new VBox(10);
 		buttonsBox.setPadding(new Insets(5));
@@ -296,6 +307,130 @@ public class PaintPane extends BorderPane {
         buttonsBox.getChildren().add(duplicateButton);
         buttonsBox.getChildren().add(divideButton);
         buttonsBox.getChildren().add(centerButton);
+
+		Button helpBtn = new Button("❓");
+		// help button styling with CSS for circular shape :)
+		helpBtn.setStyle(
+				"-fx-background-radius: 50em; " +
+						"-fx-min-width: 25px; " +
+						"-fx-min-height: 25px; " +
+						"-fx-max-width: 25px; " +
+						"-fx-max-height: 25px; " +
+						"-fx-padding: 0; " +
+						"-fx-alignment: center; " +
+						"-fx-font-size: 12px; " +
+						"-fx-cursor: hand; " +
+						"-fx-background-color: #A999F0; " +
+						"-fx-text-fill: white;"
+		);
+		setToolHelp(helpBtn, "Ayuda: Ver atajos de teclado y créditos");
+
+		helpBtn.setOnAction(event -> {
+			Alert info = new Alert(Alert.AlertType.INFORMATION);
+			info.setTitle("Ayuda y Atajos");
+			info.setHeaderText("Paint JavaFX - Guía Rápida");
+			info.setContentText(
+					"ATAJOS DE TECLADO:\n" +
+							"• ESC: Deseleccionar figura\n" +
+							"• SUPR / BACKSPACE: Eliminar figura seleccionada\n\n" +
+							"TRUCOS:\n" +
+							"• Modo Oscuro: Usa el botón 🌙 para descansar la vista\n\n" +
+							"PS:\n" +
+							"Diviertase leyendo algunas frases 'Orientadas a Objetos' \uD83D\uDE09 en la barra de estado!\n\n"
+			);
+			info.getDialogPane().setMinWidth(400);
+			info.showAndWait();
+		});
+
+		// spacer for topbar
+		Region spacer = new Region();
+		HBox.setHgrow(spacer, Priority.ALWAYS);
+
+		// Layout Topbar
+		HBox topBar = new HBox(10);
+		topBar.setPadding(new Insets(10));
+		topBar.setAlignment(Pos.CENTER_LEFT);
+		topBar.setStyle("-fx-background-color: #999");
+
+		// dark mode toggle setup
+		themeToggle.setSelected(false);
+		setToolHelp(themeToggle, "Cambiar Tema: Alternar entre modo Claro y Oscuro");
+
+
+		themeToggle.setOnAction(event -> {
+			if (themeToggle.isSelected()) {
+				// dark mode on
+				themeToggle.setText("☀");
+				setStyle("-fx-background-color: #2b2b2b;");
+
+				String darkBarStyle = "-fx-background-color: #3c3f41; -fx-padding: 10; -fx-spacing: 10;";
+				String sidebarStyle = "-fx-background-color: #3c3f41; -fx-padding: 5; -fx-spacing: 10;";
+
+				topBar.setStyle(darkBarStyle);
+				buttonsBox.setStyle(sidebarStyle);
+				statusPane.setStyle("-fx-background-color: #3c3f41;");
+
+				// i m using 'Labeled' to include Label and ChoiceBox, but exclude Buttons
+				topBar.getChildren().forEach(node -> {
+					if (node instanceof Label || node instanceof RadioButton || node instanceof CheckBox) {
+						node.setStyle("-fx-text-fill: white;");
+					} else if (node instanceof Button || node instanceof ToggleButton) {
+						node.setStyle("-fx-text-fill: black;");
+					}
+				});
+
+				buttonsBox.getChildren().forEach(node -> {
+					if (node instanceof Label || node instanceof RadioButton || node instanceof CheckBox) {
+						node.setStyle("-fx-text-fill: white;");
+					} else if (node instanceof Button || node instanceof ToggleButton) {
+						node.setStyle("-fx-text-fill: black;");
+					}
+				});
+
+				statusPane.getChildren().forEach(node -> {
+					if (node instanceof javafx.scene.control.Labeled) {
+						node.setStyle("-fx-text-fill: #f0f0f0; -fx-font-weight: bold;");
+					}
+				});
+
+			} else {
+				// dark mode off
+				themeToggle.setText("🌙");
+				setStyle("-fx-background-color: white;");
+
+				String lightBarStyle = "-fx-background-color: #999; -fx-padding: 10; -fx-spacing: 10;";
+				String sidebarStyle = "-fx-background-color: #999; -fx-padding: 5; -fx-spacing: 10;";
+
+				topBar.setStyle(lightBarStyle);
+				buttonsBox.setStyle(sidebarStyle);
+				statusPane.setStyle("-fx-background-color: #999;");
+
+				topBar.getChildren().forEach(node -> {
+					if (node instanceof javafx.scene.control.Labeled) {
+						node.setStyle("-fx-text-fill: black;");
+					}
+				});
+
+				buttonsBox.getChildren().forEach(node -> {
+					if (node instanceof javafx.scene.control.Labeled) {
+						node.setStyle("-fx-text-fill: black;");
+					}
+				});
+
+				statusPane.getChildren().forEach(node -> {
+					if (node instanceof javafx.scene.control.Labeled) {
+						node.setStyle("-fx-text-fill: black;");
+					}
+				});
+			}
+		});
+
+		topBar.getChildren().addAll(
+				new Label("Capas:"), layersBox,
+				showLayerRb, hideLayerRb, addLayerBtn,
+				deleteLayerBtn, spacer, themeToggle, helpBtn
+		);
+		setTop(topBar);
 
         canvas.setOnMousePressed(event -> {
 			startPoint = new Point(event.getX(), event.getY());
