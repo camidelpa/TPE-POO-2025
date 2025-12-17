@@ -72,17 +72,14 @@ public class PaintPane extends BorderPane {
 	private final Button deleteLayerBtn = new Button("Eliminar Capa");
 
 	private final String[] rdmMessages = {
-			"Estado actual: objeto == null",
-			"Ninguna instancia seleccionada",
-			"El heap está listo para crear objetos",
-			"Fábrica de figuras en standby",
+			"Estado actual: objeto == null \uD83D\uDE31\u200B\uD83D\uDE2D",
+			"\uD83D\uDE80 El heap está listo para crear objetos \uD83D\uDE80",
+			"Fábrica de figuras en standby \uD83D\uDCA4 \uD83D\uDCA4 \uD83D\uDCA4",
 			"Polimorfismo en pausa ⏸",
-			"Seleccioná una clase para instanciar",
-			"El canvas espera su próximo objeto",
-			"Sin referencias activas por aquí",
-			"Listo para recibir un new Figura()",
-			"Modo edición deshabilitado (por ahora)",
-			"Interfaz esperando interacción",
+			"🎨 El canvas espera su próxima obra de arte 🎨",
+			"\uD83D\uDC4D Listo para recibir un new Figura() \uD83D\uDC4D",
+			"⚠ Modo edición deshabilitado (por ahora) ⚠",
+			"⌛Interfaz esperando interacción⌛",
 			"Garbage Collector aburrido 😴"
 	};
 
