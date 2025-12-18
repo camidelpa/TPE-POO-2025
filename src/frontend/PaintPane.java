@@ -2,614 +2,209 @@ package frontend;
 
 import backend.CanvasState;
 import backend.model.*;
-import frontend.managers.LayerManager;
-import javafx.geometry.Insets;
+import frontend.managers.*;
+import javafx.geometry.*;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.VBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
-import javafx.geometry.Pos;
-import javafx.scene.layout.HBox;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 
 public class PaintPane extends BorderPane {
 
-	// canvas and state
-	private final CanvasState canvasState;
-	private final Canvas canvas = new Canvas(900, 780);
-	private final GraphicsContext gc = canvas.getGraphicsContext2D();
+    private final Canvas canvas = new Canvas(900, 780);
+    private final CanvasState canvasState;
+    private final StatusPane statusPane;
 
-	// tools
-	private final ToggleButton selectionButton = new ToggleButton("Seleccionar");
-	private final ToggleButton rectangleButton = new ToggleButton("Rectángulo");
-	private final ToggleButton circleButton = new ToggleButton("Círculo");
-	private final ToggleButton squareButton = new ToggleButton("Cuadrado");
-	private final ToggleButton ellipseButton = new ToggleButton("Elipse");
-	private final ToggleButton deleteButton = new ToggleButton("Borrar");
+    private final ToggleButton selectBtn = new ToggleButton("Seleccionar");
+    private final ToggleButton rectBtn = new ToggleButton("Rectángulo");
+    private final ToggleButton circleBtn = new ToggleButton("Círculo");
+    private final ToggleButton squareBtn = new ToggleButton("Cuadrado");
+    private final ToggleButton ellipseBtn = new ToggleButton("Elipse");
+    private final ToggleButton deleteBtn = new ToggleButton("Borrar");
 
-	private final Button duplicateButton = new Button("Duplicar");
-	private final Button divideButton = new Button("Dividir");
-	private final Button centerButton = new Button("Al Centro");
-
-	// creation strategies map to reduce imperativity
-	private final Map<ToggleButton, BiFunction<Point, Point, Figure>> creationStrategies = new HashMap<>();
-
-	// shadows
-	private final ChoiceBox<ShadowType> shadowBox = new ChoiceBox<>();
-
-	// fills
-	private final ColorPicker fillColorPicker1 = new ColorPicker(Color.CYAN);
-	private final ColorPicker fillColorPicker2 = new ColorPicker(Color.RED);
-
-	// borders
-	private final ChoiceBox<BorderType> borderBox = new ChoiceBox<>();
-	private final Slider borderSlider = new Slider(1, 20, 1);
-
-	private Point startPoint;
-	private Figure selectedFigure;
-	private final StatusPane statusPane;
-	private Figure previewFigure;
-
-    private final LayerManager layerManager;
-
-	private final String[] rdmMessages = {
-			"Estado actual: objeto == null \uD83D\uDE31\u200B\uD83D\uDE2D",
-			"\uD83D\uDE80 El heap está listo para crear objetos \uD83D\uDE80",
-			"Fábrica de figuras en standby \uD83D\uDCA4 \uD83D\uDCA4 \uD83D\uDCA4",
-			"Polimorfismo en pausa ⏸",
-			"🎨 El canvas espera su próxima obra de arte 🎨",
-			"\uD83D\uDC4D Listo para recibir un new Figura() \uD83D\uDC4D",
-			"⚠ Modo edición deshabilitado (por ahora) ⚠",
-			"⌛Interfaz esperando interacción⌛",
-			"Garbage Collector aburrido 😴"
-	};
-
-	// dark mode toggle
-	private final ToggleButton themeToggle = new ToggleButton("🌙");
+    private final ColorPicker fill1 = new ColorPicker(Color.CYAN);
+    private final ColorPicker fill2 = new ColorPicker(Color.RED);
+    private final ChoiceBox<ShadowType> shadowBox = new ChoiceBox<>();
+    private final ChoiceBox<BorderType> borderBox = new ChoiceBox<>();
+    private final Slider borderSlider = new Slider(1, 20, 1);
 
     private final TextArea tagsArea = new TextArea();
     private final Button saveTagsBtn = new Button("Guardar");
 
-    private final ToggleGroup filterGroup = new ToggleGroup();
-    private final RadioButton allFilterRb = new RadioButton("Todas");
-    private final RadioButton soloFilterRb = new RadioButton("Solo");
+    private final RadioButton allRb = new RadioButton("Todas");
+    private final RadioButton soloRb = new RadioButton("Solo");
     private final TextField filterField = new TextField();
 
-	public PaintPane(CanvasState canvasState, StatusPane statusPane) {
-		this.canvasState = canvasState;
-		this.statusPane = statusPane;
+    private final ToolController toolController;
+    private final CanvasRenderer renderer;
+    private final TagEditor tagEditor = new TagEditor();
+    private final TagFilter tagFilter = new TagFilter();
+    private final KeyboardShortcutManager keyManager = new KeyboardShortcutManager();
+    private final LayerManager layerManager;
 
-		// Initialize creation strategies (removes if/else from createFigure)
-		creationStrategies.put(rectangleButton, Rectangle::new);
-		creationStrategies.put(circleButton, Circle::new);
-		creationStrategies.put(squareButton, Square::new);
-		creationStrategies.put(ellipseButton, Ellipse::new);
+    public PaintPane(CanvasState canvasState, StatusPane statusPane) {
+        this.canvasState = canvasState;
+        this.statusPane = statusPane;
 
-		ToggleButton[] toolsArr = {selectionButton, rectangleButton, circleButton, squareButton, ellipseButton, deleteButton};
-		ToggleGroup tools = new ToggleGroup();
-		for (ToggleButton tool : toolsArr) {
-			tool.setMinWidth(90);
-			tool.setToggleGroup(tools);
-			tool.setCursor(Cursor.HAND);
-		}
+        Map<ToggleButton, BiFunction<Point, Point, Figure>> strategies = new HashMap<>();
+        strategies.put(rectBtn, Rectangle::new);
+        strategies.put(circleBtn, Circle::new);
+        strategies.put(squareBtn, Square::new);
+        strategies.put(ellipseBtn, Ellipse::new);
 
-		// shadows
-		shadowBox.getItems().addAll(ShadowType.values());
-		shadowBox.setValue(ShadowType.NONE);
-		shadowBox.setTooltip(new Tooltip("Tipo de Sombra"));
-
-		// fills
-		fillColorPicker1.setMaxWidth(90);
-		fillColorPicker2.setMaxWidth(90);
-
-		// borders
-		borderBox.getItems().addAll(BorderType.values());
-		borderBox.setValue(BorderType.NORMAL);
-		borderSlider.setShowTickMarks(true);
-		borderSlider.setShowTickLabels(true);
-
-		shadowBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-			if (selectedFigure != null) {
-				selectedFigure.setShadowType(newVal);
-				redrawCanvas();
-			}
-		});
-
-		fillColorPicker1.setOnAction(e -> {
-			if (selectedFigure != null) {
-				selectedFigure.setFillColor1(fillColorPicker1.getValue());
-				redrawCanvas();
-			}
-		});
-
-		fillColorPicker2.setOnAction(e -> {
-			if (selectedFigure != null) {
-				selectedFigure.setFillColor2(fillColorPicker2.getValue());
-				redrawCanvas();
-			}
-		});
-
-		borderBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-			if (selectedFigure != null) {
-				selectedFigure.setBorderType(newVal);
-				redrawCanvas();
-			}
-		});
-
-		borderSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-			if (selectedFigure != null) {
-				selectedFigure.setBorderWidth(newVal.doubleValue());
-				redrawCanvas();
-			}
-		});
-
-		duplicateButton.setMinWidth(90);
-		duplicateButton.setCursor(Cursor.HAND);
-		divideButton.setMinWidth(90);
-		divideButton.setCursor(Cursor.HAND);
-		centerButton.setMinWidth(90);
-		centerButton.setCursor(Cursor.HAND);
+        toolController = new ToolController(strategies);
+        layerManager = new LayerManager(canvasState, statusPane, this::redraw);
+        renderer = new CanvasRenderer(
+                canvas.getGraphicsContext2D(),
+                layerManager,
+                tagFilter
+        );
 
 
-        layerManager = new LayerManager(canvasState, statusPane, this::redrawCanvas);
+        configureUI();
+        configureEvents();
+        redraw();
+    }
 
+    private void configureUI() {
 
-		duplicateButton.setOnAction(event -> {
-			if (selectedFigure != null) {
-				double offsetX = 20.0;
-				double offsetY = 20.0;
+        ToggleGroup tools = new ToggleGroup();
+        selectBtn.setToggleGroup(tools);
+        rectBtn.setToggleGroup(tools);
+        circleBtn.setToggleGroup(tools);
+        squareBtn.setToggleGroup(tools);
+        ellipseBtn.setToggleGroup(tools);
+        deleteBtn.setToggleGroup(tools);
 
-				Figure duplicated = selectedFigure.duplicate(offsetX, offsetY);
-				canvasState.addFigure(duplicated);
-				redrawCanvas();
-				statusPane.updateStatus("Figura duplicada");
-			}
-		});
+        shadowBox.getItems().addAll(ShadowType.values());
+        shadowBox.setValue(ShadowType.NONE);
 
-		divideButton.setOnAction(event -> {
-			if (selectedFigure != null) {
-				java.util.List<Figure> dividedFigures = selectedFigure.divide();
+        borderBox.getItems().addAll(BorderType.values());
+        borderBox.setValue(BorderType.NORMAL);
 
-				canvasState.deleteFigure(selectedFigure);
+        VBox sidebar = new VBox(8,
+                selectBtn, rectBtn, circleBtn, squareBtn, ellipseBtn, deleteBtn,
+                new Label("Sombra"), shadowBox,
+                new Label("Relleno"), fill1, fill2,
+                new Label("Borde"), borderSlider, borderBox,
+                new Label("Etiquetas"), tagsArea, saveTagsBtn
+        );
+        sidebar.setPadding(new Insets(6));
+        sidebar.setPrefWidth(115);
+        sidebar.setStyle("-fx-background-color:#999");
 
-				for (Figure fig : dividedFigures) {
-					canvasState.addFigure(fig);
-				}
-				selectedFigure = null;
-				redrawCanvas();
-				statusPane.updateStatus("Figura dividida");
-			}
-		});
+        ToggleGroup filterGroup = new ToggleGroup();
+        allRb.setToggleGroup(filterGroup);
+        soloRb.setToggleGroup(filterGroup);
+        allRb.setSelected(true);
 
-		centerButton.setOnAction(event -> {
-			if (selectedFigure != null) {
-				selectedFigure.moveToCenter(canvas.getWidth(), canvas.getHeight());
-				redrawCanvas();
-				statusPane.updateStatus("Figura movida al centro");
-			}
-		});
+        HBox topBar = new HBox(10,
+                new Label("Mostrar etiquetas:"), allRb, soloRb, filterField,
+                layerManager
+        );
+        topBar.setPadding(new Insets(8));
+        topBar.setStyle("-fx-background-color:#999");
 
+        setLeft(sidebar);
+        setTop(topBar);
+        setCenter(canvas);
+    }
 
-		// tool help messages
-		setToolHelp(selectionButton, "Seleccionar: Haga clic en una figura para editarla o arrastre para moverla");
-		setToolHelp(rectangleButton, "Rectángulo: Arrastre el mouse para crear");
-		setToolHelp(circleButton, "Círculo: Arrastre desde el centro para definir el radio");
-		setToolHelp(squareButton, "Cuadrado: Arrastre para definir el tamaño");
-		setToolHelp(ellipseButton, "Elipse: Arrastre el área que contendrá la elipse");
-		setToolHelp(deleteButton, "Borrar: Elimina la figura seleccionada permanentemente");
+    private void configureEvents() {
 
-		setToolHelp(duplicateButton, "Duplicar: Crea una copia exacta de la figura seleccionada");
-		setToolHelp(divideButton, "Dividir: Parte la figura seleccionada en dos mitades");
-		setToolHelp(centerButton, "Centrar: Mueve la figura seleccionada al centro del lienzo");
+        canvas.setOnMousePressed(e ->
+                toolController.onMousePressed(new Point(e.getX(), e.getY()))
+        );
 
-		setToolHelp(shadowBox, "Sombra: Elija un estilo de sombra para la figura");
-		setToolHelp(fillColorPicker1, "Color Primario: Relleno principal o inicio del degradado");
-		setToolHelp(fillColorPicker2, "Color Secundario: Color final del degradado");
-		setToolHelp(borderSlider, "Grosor: Ajuste el ancho del borde");
-		setToolHelp(borderBox, "Tipo de Borde: Elija el estilo de línea del contorno");
-
-
-		// Layout Sidebar
-		VBox buttonsBox = new VBox(10);
-		buttonsBox.setPadding(new Insets(5));
-		buttonsBox.setStyle("-fx-background-color: #999");
-		buttonsBox.setPrefWidth(100);
-
-		buttonsBox.getChildren().addAll(toolsArr);
-
-		buttonsBox.getChildren().add(new Label("Sombra"));
-		buttonsBox.getChildren().add(shadowBox);
-
-		buttonsBox.getChildren().add(new Label("Relleno"));
-		buttonsBox.getChildren().add(fillColorPicker1);
-		buttonsBox.getChildren().add(fillColorPicker2);
-
-		buttonsBox.getChildren().add(new Label("Borde"));
-		buttonsBox.getChildren().add(borderSlider);
-		buttonsBox.getChildren().add(borderBox);
-
-		buttonsBox.getChildren().add(new Label("Acciones"));
-		buttonsBox.getChildren().add(duplicateButton);
-		buttonsBox.getChildren().add(divideButton);
-		buttonsBox.getChildren().add(centerButton);
-        buttonsBox.getChildren().addAll(new Label("Etiquetas"), tagsArea, saveTagsBtn);
-
-		Button helpBtn = new Button("❓");
-		// help button styling with CSS for circular shape :)
-		helpBtn.setStyle(
-				"-fx-background-radius: 50em; " +
-						"-fx-min-width: 25px; " +
-						"-fx-min-height: 25px; " +
-						"-fx-max-width: 25px; " +
-						"-fx-max-height: 25px; " +
-						"-fx-padding: 0; " +
-						"-fx-alignment: center; " +
-						"-fx-font-size: 12px; " +
-						"-fx-cursor: hand; " +
-						"-fx-background-color: #A999F0; " +
-						"-fx-text-fill: white;"
-		);
-		setToolHelp(helpBtn, "Ayuda: Ver atajos de teclado y créditos");
-
-		helpBtn.setOnAction(event -> {
-			Alert info = new Alert(Alert.AlertType.INFORMATION);
-			info.setTitle("Ayuda y Atajos");
-			info.setHeaderText("Paint JavaFX - Guía Rápida");
-			info.setContentText(
-					"ATAJOS DE TECLADO:\n" +
-							"• ESC: Deseleccionar figura\n" +
-							"• SUPR / BACKSPACE: Eliminar figura seleccionada\n\n" +
-							"TRUCOS:\n" +
-							"• Modo Oscuro: Usa el botón 🌙 para descansar la vista\n\n" +
-							"PS:\n" +
-							"Diviertase leyendo algunas frases 'Orientadas a Objetos' \uD83D\uDE09 en la barra de estado!\n\n"
-			);
-			info.getDialogPane().setMinWidth(400);
-			info.showAndWait();
-		});
-
-		// spacer for topbar
-		Region spacer = new Region();
-		HBox.setHgrow(spacer, Priority.ALWAYS);
-
-		// Layout Topbar
-		HBox topBar = new HBox(10);
-		topBar.setPadding(new Insets(10));
-		topBar.setAlignment(Pos.CENTER_LEFT);
-		topBar.setStyle("-fx-background-color: #999");
-        topBar.getChildren().addAll(new Label("Mostrar Etiquetas:"), allFilterRb, soloFilterRb, filterField);
-
-		// dark mode toggle setup
-		themeToggle.setSelected(false);
-		setToolHelp(themeToggle, "Cambiar Tema: Alternar entre modo Claro y Oscuro");
-
-
-        // Inicializar ThemeManager
-        frontend.managers.ThemeManager themeManager = new frontend.managers.ThemeManager(this, topBar, buttonsBox, statusPane, themeToggle);
-
-        // Configurar acción del botón delegando al manager
-        themeToggle.setOnAction(event -> {
-            themeManager.setDarkMode(themeToggle.isSelected());
+        canvas.setOnMouseDragged(e -> {
+            Figure preview = toolController.onMouseDragged(
+                    new Point(e.getX(), e.getY()),
+                    (ToggleButton) selectBtn.getToggleGroup().getSelectedToggle(),
+                    selectBtn.isSelected()
+            );
+            redraw(preview);
         });
 
-        topBar.getChildren().addAll(
-                layerManager,
-                spacer, themeToggle, helpBtn
-		);
-		setTop(topBar);
+        canvas.setOnMouseReleased(e -> {
+            Figure created = toolController.onMouseReleased(
+                    new Point(e.getX(), e.getY()),
+                    (ToggleButton) selectBtn.getToggleGroup().getSelectedToggle(),
+                    selectBtn.isSelected()
+            );
 
-		canvas.setOnMousePressed(event -> {
-			startPoint = new Point(event.getX(), event.getY());
-		});
+            if (created != null) {
+                applyStyles(created);
+                canvasState.addFigure(created);
+            }
+            redraw();
+        });
 
-		canvas.setOnMouseMoved(event -> {
-			Point eventPoint = new Point(event.getX(), event.getY());
-			boolean found = false;
-			StringBuilder label = new StringBuilder();
-
-			for(Figure figure : canvasState.figures()) {
-				if(figure.contains(eventPoint)) {
-					found = true;
-					label.append(figure.toString());
-				}
-			}
-
-			if(found) {
-				statusPane.updateStatus(label.toString());
-			} else {
-				statusPane.updateStatus(eventPoint.toString()); // show coords
-			}
-
-			// cursor change logic
-			if (selectionButton.isSelected()) {
-				canvas.setCursor(found ? Cursor.HAND : Cursor.DEFAULT);
-			} else {
-				canvas.setCursor(Cursor.CROSSHAIR);
-			}
-		});
-
-		canvas.setOnMouseClicked(event -> {
-			if(selectionButton.isSelected()) {
-				Point eventPoint = new Point(event.getX(), event.getY());
-				boolean found = false;
-				StringBuilder label = new StringBuilder("Se seleccionó: ");
-				for (Figure figure : canvasState.figures()) {
-					if(figure.contains(eventPoint)) {
-						found = true;
-						selectedFigure = figure;
-						label.append(figure.toString());
-					}
-				}
-				if (found) {
-					statusPane.updateStatus(label.toString());
-					fillColorPicker1.setValue(selectedFigure.getFillColor1());
-					fillColorPicker2.setValue(selectedFigure.getFillColor2());
-					shadowBox.setValue(selectedFigure.getShadowType());
-					borderBox.setValue(selectedFigure.getBorderType());
-					borderSlider.setValue(selectedFigure.getBorderWidth());
-                    tagsArea.setText(selectedFigure.getTagsString());
-				} else {
-					selectedFigure = null;
-                    tagsArea.clear();
-					statusPane.updateStatus("Ninguna figura encontrada");
-				}
-				redrawCanvas();
-			}
-		});
-
-		canvas.setOnMouseDragged(event -> {
-			Point eventPoint = new Point(event.getX(), event.getY());
-
-			// move logic
-			if (selectionButton.isSelected() && selectedFigure != null) {
-				double diffX = eventPoint.getX() - startPoint.getX();
-				double diffY = eventPoint.getY() - startPoint.getY();
-				selectedFigure.move(diffX, diffY);
-
-				// update startPoint for continuous movement
-				startPoint = eventPoint;
-
-				redrawCanvas();
-			}
-
-			// drawing logic
-			else if (!selectionButton.isSelected()) {
-				previewFigure = createFigure(startPoint, eventPoint);
-				redrawCanvas();
-			}
-		});
-
-		canvas.setOnMouseReleased(event -> {
-			Point endPoint = new Point(event.getX(), event.getY());
-			if(startPoint == null) return;
-
-			// only if we are in drawing mode, not selection
-			if (!selectionButton.isSelected()) {
-				Figure newFigure = createFigure(startPoint, endPoint);
-
-				if (newFigure != null) {
-					canvasState.addFigure(newFigure);
-				}
-			}
-
-			startPoint = null;
-			previewFigure = null; // erasing the ghost preview
-			redrawCanvas();
-		});
-
-		deleteButton.setOnAction(event -> {
-			if (selectedFigure != null) {
-				canvasState.deleteFigure(selectedFigure);
-				selectedFigure = null;
-				redrawCanvas();
-			}
-		});
-
-		setLeft(buttonsBox);
-		setRight(canvas);
-
-		// keyboard 'shortcuts'
-		canvas.setFocusTraversable(true);
-		canvas.addEventFilter(javafx.scene.input.MouseEvent.ANY, e -> canvas.requestFocus());
-		canvas.setOnKeyPressed(event -> {
-			switch (event.getCode()) {
-				case DELETE:
-				case BACK_SPACE:
-					//  Supr or Backspace: deletes the figure
-					if (selectedFigure != null) {
-						canvasState.deleteFigure(selectedFigure);
-						selectedFigure = null;
-						redrawCanvas();
-						statusPane.updateStatus("Figura eliminada con teclado");
-					}
-					break;
-
-				case ESCAPE:
-					// Esc: deselects any selected figure
-					if (selectedFigure != null) {
-						selectedFigure = null;
-						redrawCanvas();
-						statusPane.updateStatus("Ninguna figura seleccionada");
-					}
-					break;
-			}
-		});
-
-        // Configuración Sidebar (Etiquetas)
-        tagsArea.setPrefRowCount(3);
-        tagsArea.setPromptText("etiqueta1 etiqueta2...");
-        saveTagsBtn.setMaxWidth(Double.MAX_VALUE);
+        canvas.setOnMouseClicked(e -> {
+            if (selectBtn.isSelected()) {
+                Figure selected = findFigureAt(
+                        new Point(e.getX(), e.getY())
+                );
+                toolController.setSelectedFigure(selected);
+                tagsArea.setText(selected != null ? selected.getTagsString() : "");
+                redraw();
+            }
+        });
 
         saveTagsBtn.setOnAction(e -> {
-            if (selectedFigure != null) {
-                // Separa el texto por espacios o saltos de línea [cite: 322, 323]
-                String[] parts = tagsArea.getText().trim().split("\\s+");
-                List<String> newTags = new ArrayList<>();
-                for (String p : parts) {
-                    if (!p.isEmpty()) newTags.add(p);
-                }
-                selectedFigure.replaceTags(newTags); // Reemplaza existentes [cite: 324]
-                statusPane.updateStatus("Etiquetas guardadas para " + selectedFigure.getFigureName());
+            Figure sel = toolController.getSelectedFigure();
+            if (sel != null) {
+                tagEditor.applyTags(sel, tagsArea.getText());
+                statusPane.updateStatus("Etiquetas guardadas");
             }
         });
 
-        // Configuración Topbar (Filtrado)
-        allFilterRb.setToggleGroup(filterGroup);
-        soloFilterRb.setToggleGroup(filterGroup);
-        allFilterRb.setSelected(true);
+        canvas.setFocusTraversable(true);
+        canvas.setOnKeyPressed(e ->
+                keyManager.handle(
+                        e.getCode(),
+                        toolController.getSelectedFigure(),
+                        canvasState,
+                        this::redraw,
+                        statusPane::updateStatus
+                )
+        );
+    }
 
-        allFilterRb.setOnAction(e -> redrawCanvas());
-        soloFilterRb.setOnAction(e -> redrawCanvas());
-        filterField.textProperty().addListener((obs, old, newVal) -> {
-            if (soloFilterRb.isSelected()) redrawCanvas();
-        });
-	}
+    private void applyStyles(Figure f) {
+        f.setFillColor1(fill1.getValue());
+        f.setFillColor2(fill2.getValue());
+        f.setShadowType(shadowBox.getValue());
+        f.setBorderType(borderBox.getValue());
+        f.setBorderWidth(borderSlider.getValue());
+        f.setLayer(layerManager.getCurrentLayer());
+    }
 
-	private Stop[] getFilledStops(Figure figure) {
-		Stop[] stops = {new Stop(0, figure.getFillColor1()), new Stop(1, figure.getFillColor2())};
-		if (figure instanceof Ellipse) {
-			gc.setFill(new RadialGradient(0, 0, 0.5, 0.5, 0.5, true, CycleMethod.NO_CYCLE, stops));
-		} else {
-			gc.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE, stops));
-		}
-		return stops;
-	}
+    private void redraw() {
+        redraw(null);
+    }
 
-	// Draw logic
-	private void redrawCanvas() {
-		gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+    private void redraw(Figure preview) {
+        renderer.redraw(
+                canvasState.figures(),
+                toolController.getSelectedFigure(),
+                preview,
+                soloRb.isSelected(),
+                filterField.getText()
+        );
+    }
 
-		List<Figure> sortedFigures = new ArrayList<>();
-		for (Figure f : canvasState.figures()) {
-			sortedFigures.add(f);
-		}
-		sortedFigures.sort(Comparator.comparingInt(Figure::getLayer));
-
-        for (Figure figure : sortedFigures) {
-            boolean layerVisible = layerManager.isLayerVisible(figure.getLayer());
-
-            boolean tagsVisible = true;
-            if (soloFilterRb.isSelected()) {
-                String filterText = filterField.getText().trim().split("\\s+")[0]; // Solo primera palabra [cite: 328]
-                tagsVisible = !filterText.isEmpty() && figure.hasTag(filterText);
+    private Figure findFigureAt(Point p) {
+        for (Figure f : canvasState.figures()) {
+            if (f.contains(p)) {
+                return f;
             }
-
-            if (!layerVisible || !tagsVisible) {
-                continue;
-            }
-
-            if (figure.getShadowType() != ShadowType.NONE) {
-                double offset = 10.0;
-                double shadowX = 0; double shadowY = 0; Color shadowColor = Color.GRAY;
-                switch (figure.getShadowType()) {
-                    case SIMPLE: shadowX = offset; shadowY = offset; shadowColor = Color.GRAY; break;
-                    case COLORED: shadowX = offset; shadowY = offset; shadowColor = figure.getFillColor1().darker(); break;
-                    case SIMPLE_INVERSE: shadowX = -offset; shadowY = -offset; shadowColor = Color.GRAY; break;
-                    case COLORED_INVERSE: shadowX = -offset; shadowY = -offset; shadowColor = figure.getFillColor1().darker(); break;
-                    default: break;
-                }
-                gc.setFill(shadowColor); gc.setStroke(Color.TRANSPARENT);
-                drawFigureShape(figure, shadowX, shadowY);
         }
-			Stop[] stops = getFilledStops(figure);
-
-			if (figure == selectedFigure) {
-				gc.setStroke(Color.RED); gc.setLineDashes((double[]) null);
-			} else {
-				gc.setStroke(Color.BLACK);
-				if(figure.getBorderType() == BorderType.DOTTED_SIMPLE) gc.setLineDashes(10d);
-				else if(figure.getBorderType() == BorderType.DOTTED_COMPLEX) gc.setLineDashes(30d, 10d, 15d, 10d);
-				else gc.setLineDashes((double[]) null);
-			}
-			gc.setLineWidth(figure.getBorderWidth());
-
-			drawFigureShape(figure, 0, 0);
-		}
-
-		if (previewFigure != null) {
-			gc.setGlobalAlpha(0.5);
-
-			Stop[] stops = getFilledStops(previewFigure);
-
-			gc.setStroke(Color.BLACK);
-			gc.setLineWidth(previewFigure.getBorderWidth());
-			if(previewFigure.getBorderType() == BorderType.DOTTED_SIMPLE) gc.setLineDashes(10d);
-			else if(previewFigure.getBorderType() == BorderType.DOTTED_COMPLEX) gc.setLineDashes(30d, 10d, 15d, 10d);
-			else gc.setLineDashes((double[]) null);
-
-			drawFigureShape(previewFigure, 0, 0);
-			gc.setGlobalAlpha(1.0);
-		}
-	}
-
-	private void drawFigureShape(Figure figure, double offsetX, double offsetY) {
-
-		if(figure instanceof Rectangle) {
-			Rectangle rectangle = (Rectangle) figure;
-
-			// Geometry calculations removed from frontend (should use backend methods)
-			double width = rectangle.getWidth();
-			double height = rectangle.getHeight();
-
-			gc.fillRect(rectangle.getTopLeft().getX() + offsetX, rectangle.getTopLeft().getY() + offsetY, width, height);
-			if (offsetX == 0) gc.strokeRect(rectangle.getTopLeft().getX(), rectangle.getTopLeft().getY(), width, height);
-
-		} else if(figure instanceof Ellipse) {
-			Ellipse ellipse = (Ellipse) figure;
-			double width = ellipse.getsAxisX();
-			double height = ellipse.getsAxisY();
-			double x = (ellipse.getCenterPoint().getX() - (width / 2)) + offsetX;
-			double y = (ellipse.getCenterPoint().getY() - (height / 2)) + offsetY;
-
-			gc.fillOval(x, y, width, height);
-			if (offsetX == 0) gc.strokeOval(x - offsetX, y - offsetY, width, height);
-		}
-	}
-
-	private Figure createFigure(Point start, Point end) {
-		// logic moved to backend constructors to remove calculations here
-
-		// Find the selected tool strategy
-		ToggleButton selectedTool = (ToggleButton) rectangleButton.getToggleGroup().getSelectedToggle();
-
-		if (creationStrategies.containsKey(selectedTool)) {
-			Figure newFigure = creationStrategies.get(selectedTool).apply(start, end);
-
-			if (newFigure != null) {
-				newFigure.setFillColor1(fillColorPicker1.getValue());
-				newFigure.setFillColor2(fillColorPicker2.getValue());
-				newFigure.setShadowType(shadowBox.getValue());
-				newFigure.setBorderType(borderBox.getValue());
-				newFigure.setBorderWidth(borderSlider.getValue());
-                newFigure.setLayer(layerManager.getCurrentLayer());
-			}
-			return newFigure;
-		}
-
-		return null;
-	}
-
-	// tool help messages
-	private void setToolHelp(javafx.scene.control.Control tool, String message) {
-		tool.setOnMouseEntered(event -> statusPane.updateStatus(message));
-		tool.setOnMouseExited(event -> {
-			int index = (int) (Math.random() * rdmMessages.length);
-			statusPane.updateStatus(rdmMessages[index]);
-		});
-	}
+        return null;
+    }
 
 }
