@@ -2,6 +2,7 @@ package frontend;
 
 import backend.CanvasState;
 import backend.model.*;
+import frontend.managers.LayerManager;
 import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
@@ -63,19 +64,7 @@ public class PaintPane extends BorderPane {
 	private final StatusPane statusPane;
 	private Figure previewFigure;
 
-	// layer management (not implemented in UI yet)
-	private int currentLayer = 0;
-	private final Map<Integer, Boolean> layersVisibility = new HashMap<>();
-	private final List<Integer> availableLayers = new ArrayList<>();
-	private int nextLayerId = 3;
-
-	// layer UI components
-	private final ChoiceBox<String> layersBox = new ChoiceBox<>();
-	private final ToggleGroup visibilityGroup = new ToggleGroup();
-	private final RadioButton showLayerRb = new RadioButton("Mostrar");
-	private final RadioButton hideLayerRb = new RadioButton("Ocultar");
-	private final Button addLayerBtn = new Button("Agregar Capa");
-	private final Button deleteLayerBtn = new Button("Eliminar Capa");
+    private final LayerManager layerManager;
 
 	private final String[] rdmMessages = {
 			"Estado actual: objeto == null \uD83D\uDE31\u200B\uD83D\uDE2D",
@@ -176,6 +165,9 @@ public class PaintPane extends BorderPane {
 		centerButton.setCursor(Cursor.HAND);
 
 
+        layerManager = new LayerManager(canvasState, statusPane, this::redrawCanvas);
+
+
 		duplicateButton.setOnAction(event -> {
 			if (selectedFigure != null) {
 				double offsetX = 20.0;
@@ -211,74 +203,6 @@ public class PaintPane extends BorderPane {
 			}
 		});
 
-		// layer management setup
-		availableLayers.add(0); availableLayers.add(1); availableLayers.add(2);
-		layersVisibility.put(0, true); layersVisibility.put(1, true); layersVisibility.put(2, true);
-
-		// ChoiceBox configuration
-		updateLayersBox();
-		layersBox.getSelectionModel().selectFirst();
-
-		layersBox.getSelectionModel().selectedIndexProperty().addListener((obs, oldVal, newVal) -> {
-			if (newVal.intValue() >= 0) {
-				currentLayer = availableLayers.get(newVal.intValue());
-				boolean isVisible = layersVisibility.get(currentLayer);
-				showLayerRb.setSelected(isVisible);
-				hideLayerRb.setSelected(!isVisible);
-			}
-		});
-
-		// show/hide buttons
-		showLayerRb.setToggleGroup(visibilityGroup);
-		hideLayerRb.setToggleGroup(visibilityGroup);
-		showLayerRb.setSelected(true);
-
-		showLayerRb.setOnAction(e -> { layersVisibility.put(currentLayer, true); redrawCanvas(); });
-		hideLayerRb.setOnAction(e -> { layersVisibility.put(currentLayer, false); redrawCanvas(); });
-
-		// add layer button
-		addLayerBtn.setOnAction(e -> {
-			int newId = nextLayerId++;
-			availableLayers.add(newId);
-			layersVisibility.put(newId, true);
-			updateLayersBox();
-			layersBox.getSelectionModel().selectLast();
-		});
-
-		// delete layer button
-		deleteLayerBtn.setOnAction(e -> {
-			if (currentLayer <= 2) {
-				Alert alert = new Alert(Alert.AlertType.WARNING);
-				alert.setTitle("Acción no permitida");
-				alert.setHeaderText("No se pueden eliminar las capas iniciales");
-				alert.setContentText("Las capas 1, 2 y 3 son fijas y necesarias para el sistema.");
-				alert.showAndWait();
-				return;
-			}
-
-			Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-			alert.setTitle("Eliminar Capa");
-			alert.setHeaderText("¿Estás seguro de eliminar la Capa " + (currentLayer + 1) + "?");
-			alert.setContentText("Esta acción borrará todas las figuras de la capa y no se puede deshacer");
-
-			alert.showAndWait().ifPresent(response -> {
-				if (response == ButtonType.OK) {
-					List<Figure> toDelete = new ArrayList<>();
-					for (Figure f : canvasState.figures()) {
-						if (f.getLayer() == currentLayer) toDelete.add(f);
-					}
-					for (Figure f : toDelete) canvasState.deleteFigure(f);
-
-					layersVisibility.remove(currentLayer);
-					availableLayers.remove((Integer) currentLayer);
-
-					updateLayersBox();
-					layersBox.getSelectionModel().selectFirst();
-					redrawCanvas();
-					statusPane.updateStatus("Capa eliminada");
-				}
-			});
-		});
 
 		// tool help messages
 		setToolHelp(selectionButton, "Seleccionar: Haga clic en una figura para editarla o arrastre para moverla");
@@ -298,9 +222,6 @@ public class PaintPane extends BorderPane {
 		setToolHelp(borderSlider, "Grosor: Ajuste el ancho del borde");
 		setToolHelp(borderBox, "Tipo de Borde: Elija el estilo de línea del contorno");
 
-		setToolHelp(layersBox, "Capas: Elija en qué capa dibujar");
-		setToolHelp(addLayerBtn, "Nueva Capa: Crea una capa transparente encima de las actuales");
-		setToolHelp(deleteLayerBtn, "Eliminar Capa: Borra la capa actual y todas sus figuras");
 
 		// Layout Sidebar
 		VBox buttonsBox = new VBox(10);
@@ -385,10 +306,9 @@ public class PaintPane extends BorderPane {
             themeManager.setDarkMode(themeToggle.isSelected());
         });
 
-		topBar.getChildren().addAll(
-				new Label("Capas:"), layersBox,
-				showLayerRb, hideLayerRb, addLayerBtn,
-				deleteLayerBtn, spacer, themeToggle, helpBtn
+        topBar.getChildren().addAll(
+                layerManager,
+                spacer, themeToggle, helpBtn
 		);
 		setTop(topBar);
 
@@ -580,7 +500,7 @@ public class PaintPane extends BorderPane {
 		sortedFigures.sort(Comparator.comparingInt(Figure::getLayer));
 
         for (Figure figure : sortedFigures) {
-            boolean layerVisible = layersVisibility.getOrDefault(figure.getLayer(), true);
+            boolean layerVisible = layerManager.isLayerVisible(figure.getLayer());
 
             boolean tagsVisible = true;
             if (soloFilterRb.isSelected()) {
@@ -675,30 +595,12 @@ public class PaintPane extends BorderPane {
 				newFigure.setShadowType(shadowBox.getValue());
 				newFigure.setBorderType(borderBox.getValue());
 				newFigure.setBorderWidth(borderSlider.getValue());
-				newFigure.setLayer(currentLayer);
+                newFigure.setLayer(layerManager.getCurrentLayer());
 			}
 			return newFigure;
 		}
 
 		return null;
-	}
-
-	private void updateLayersBox() {
-		// save current selection
-		String selected = layersBox.getValue();
-
-		layersBox.getItems().clear();
-		availableLayers.sort(java.util.Comparator.naturalOrder());
-		for (Integer id : availableLayers) {
-			layersBox.getItems().add("Capa " + (id + 1));
-		}
-
-		// restore selection if possible
-		if (selected != null && layersBox.getItems().contains(selected)) {
-			layersBox.setValue(selected);
-		} else if (!layersBox.getItems().isEmpty()) {
-			layersBox.getSelectionModel().selectLast();
-		}
 	}
 
 	// tool help messages
@@ -709,6 +611,5 @@ public class PaintPane extends BorderPane {
 			statusPane.updateStatus(rdmMessages[index]);
 		});
 	}
-
 
 }
