@@ -53,21 +53,22 @@ public class CanvasRenderer {
 
         ordered.sort(Comparator.comparingInt(Figure::getLayer));
 
-        // ===============================
-        // Dibujo de figuras visibles
-        // ===============================
+
         for (Figure figure : ordered) {
 
-            if (!layerManager.isLayerVisible(figure.getLayer())) {
+            boolean isSelected = figure == selectedFigure;
+
+            if (!isSelected && !layerManager.isLayerVisible(figure.getLayer())) {
                 continue;
             }
 
-            if (!tagFilter.isVisible(figure, soloMode, filterText)) {
+            if (!isSelected && !tagFilter.isVisible(figure, soloMode, filterText)) {
                 continue;
             }
 
-            drawFigure(figure, figure == selectedFigure);
+            drawFigure(figure, isSelected);
         }
+
 
         // ===============================
         // Preview (figura fantasma)
