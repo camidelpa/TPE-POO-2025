@@ -122,22 +122,13 @@ public class PaintPane extends BorderPane {
         );
 
         canvas.setOnMouseDragged(e -> {
-
             Figure preview = toolController.onMouseDragged(
                     new Point(e.getX(), e.getY()),
                     (ToggleButton) selectBtn.getToggleGroup().getSelectedToggle(),
                     selectBtn.isSelected()
             );
-
-            renderer.redraw(
-                    canvasState.figures(),
-                    toolController.getSelectedFigure(),
-                    preview,
-                    false,
-                    filterField.getText()
-            );
+            redraw(preview);
         });
-
 
         canvas.setOnMouseReleased(e -> {
             Figure created = toolController.onMouseReleased(
@@ -202,7 +193,7 @@ public class PaintPane extends BorderPane {
                 canvasState.figures(),
                 toolController.getSelectedFigure(),
                 preview,
-                false,
+                soloRb.isSelected(),
                 filterField.getText()
         );
     }
